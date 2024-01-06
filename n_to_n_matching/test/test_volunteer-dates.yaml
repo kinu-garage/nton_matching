@@ -1,0 +1,13 @@
+date: 2024-04-01
+   - school_off: True
+date: 2024-04-08
+date: 2024-04-15
+date: 2024-04-22
+date: 2024-04-29
+   # Non default numbers  don't need to be defined explictly. These are default nums but here just giving an example.
+   - required_committee: 3
+   - required_noncommittee: 2
+date: 2024-05-06
+   - required_committee: 4
+   - required_noncommittee: 4
+
