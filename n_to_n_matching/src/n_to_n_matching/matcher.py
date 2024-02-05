@@ -506,7 +506,7 @@ class GjVolunteerAllocationGame(BaseGame):
         game = cls(_dates, _persons, clean)
         return game
 
-def __main__():
+def test_1():
     #dates_input = Util.read_yaml_to_dict(base_url, "dates.yml")
     dates_input = [
         { "date": "2024-04-01", },

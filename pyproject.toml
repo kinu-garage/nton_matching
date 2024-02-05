@@ -1,0 +1,33 @@
+[build-system]
+requires      = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gjls_matching"
+version = "0.0.9"
+description = "Matching for a voluteering schedule at a school"
+readme = "README.md"
+authors = [{ name = "Isaac Saito", email = "iisaac.saito@gmail.com" }]
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: Apache2.0",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+keywords = ["many-to-many matching"]
+dependencies = [
+    "matching",
+]
+requires-python = ">=3.9"
+
+[project.optional-dependencies]
+dev = ["pip-tools", "pytest"]
+
+[project.urls]
+Homepage = "https://github.com/kinu-garage/nton_matching"
+
+[project.scripts]
+gjls_match = "n_to_n_matching.__main__:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
