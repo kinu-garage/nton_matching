@@ -230,16 +230,6 @@ class GjVolunteerAllocationGame(BaseGame):
                 if self.clean:
                     self._remove_player(player, party, other_party)
 
-    def max_per_given_period(self, dates, workers):
-        """
-        @summary: Return the maximum dates that one worker can be assigned to in a given period.
-            e.g. In the case where len(dates) = 4, len(workers) = 7 (3 are commitee, 4 are non-committee),
-        @type dates: [n_to_n_matching.WorkDate]
-        @type workers: n_to_n_matching.PersonBank
-        @rtype: int, int
-        @return: Maximum numbers of 1) "commitee" (or with any special role) worker, 2) non-commitee worker.
-        """
-
     def eval_enough_assignees(self, date):
         """
         @summary Returns eval result if a given `date` has enough numbers of assignees.
