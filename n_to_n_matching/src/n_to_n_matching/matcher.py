@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from datetime import date
 from enum import Enum
 
 from matching import BaseGame, ManyToManyMatching
@@ -85,6 +86,7 @@ class WorkDate():
     ATTR_SCHOOL_OFF = "school_off"
 
     def __init__(self,
+                 datestr,
                  school_off=False,
                  req_num_committee=3,
                  req_num_leader=1,
@@ -92,15 +94,36 @@ class WorkDate():
                  assignee_commitee=[],
                  assignee_noncommitee=[]):
         """
+        @param datestr: For now this needs to be "yyyy-mm-dd" format.
         @type assignees: [GuardianPlayer]
         @param assignee_ids_commitee: Can be empty when a class instantiates.
         """
+        self.set_date(datestr)
         self._school_off = school_off
         self._req_num_leader = req_num_leader
         self._required_committee = req_num_committee
         self._required_noncommittee = req_num_noncommittee
         self._assignees = assignee_commitee
         self._assignees_noncommitee = assignee_noncommitee
+
+    def set_date(self, datestr):
+        Util.validate_date_str(datestr)
+        ymd = datestr.split("-")
+        year = int(ymd[0])
+        month = int(ymd[1])
+        day = int(ymd[2])
+        self._date = date(year, month, day)
+
+    @property
+    def date(self):
+        """
+        @rtype datetime.date
+        """
+        return self._date
+
+    @date.setter
+    def date(self, val):
+        self.set_date(val)
 
     @property
     def assignees(self):
@@ -189,9 +212,11 @@ class GjVolunteerAllocationGame(BaseGame):
         """
         # This app doesn't require prefs so I'm not sure if calling these
         # is needed but will give it a try for now.
-        self._check_inputs_player_prefs_unique(self.DATES)
-        self._check_inputs_player_prefs_unique(self.WORKERS)
-        self._check_inputs_player_capacity(self.DATES, self.WORKERS)
+        # 20240207 Ok for now commenting these out.
+        #self._check_inputs_player_prefs_unique(self.DATES)
+        #self._check_inputs_player_prefs_unique(self.WORKERS)
+        #self._check_inputs_player_capacity(self.DATES, self.WORKERS)
+        pass
 
     def _check_inputs_player_capacity(self, party, other_party):
         """
@@ -209,6 +234,8 @@ class GjVolunteerAllocationGame(BaseGame):
         """
         @summary: Return the maximum dates that one worker can be assigned to in a given period.
             e.g. In the case where len(dates) = 4, len(workers) = 7 (3 are commitee, 4 are non-committee),
+        @type dates: [n_to_n_matching.WorkDate]
+        @type workers: n_to_n_matching.PersonBank
         @rtype: int, int
         @return: Maximum numbers of 1) "commitee" (or with any special role) worker, 2) non-commitee worker.
         """
@@ -404,18 +431,20 @@ class GjVolunteerAllocationGame(BaseGame):
                 continue
         return date
 
-    def match_per_date(self, dates, workers):
+    def match_per_date(self, dates, workers, optimal=""):
         """
         @type person:
         @param workers: `PersonBank`
+        @param optimal: Unused for now, kept just to make it consistent with `matching` pkg.
         @return 
         @raise ValueError: If the given `dates` already filled with assignees.
         """
         dates_need_attention = []
 
         # Figure out how many dates each worker can be assigned to for the given `dates`.
-        _max_daily_committee_perperson, _max_daily_noncommittee_perperson = self.max_per_given_period(dates, workers)
-        _max_daily_all = _max_daily_committee_perperson + _max_daily_noncommittee_perperson
+        # ? 20240207 These vars are not used
+        #_max_daily_committee_perperson, _max_daily_noncommittee_perperson = self.max_per_given_period(dates, workers)
+        #_max_daily_all = _max_daily_committee_perperson + _max_daily_noncommittee_perperson
 
         # BEGIN: Initial screening
         ## See if there's any date where 1 or more assignees are needed.
@@ -455,7 +484,18 @@ class GjVolunteerAllocationGame(BaseGame):
     def create_from_dict_dates(cls, dates_prefs, clean=False):
         """
         @summary: Input data converter from text-based (dictionary in .yaml) format to Python format.
-        @type dates_prefs: [{ "id", "name", "phone", "email", "children": {"child_id"}, "role_id" }]
+        @type dates_prefs: [{}]
+        @param dates_prefs: e.g. 
+            [
+                { "date": "2024-04-06", 
+                  "school_off": True, },
+                { "date": "2024-04-13",
+                  "num_leader": 1,
+                  "num_commitee": 2,
+                  "num_general": 3, },
+                { "date": "2024-04-20", },
+                { "date": "2024-04-27", }
+            ]
         """
         _dates = []
         for d in dates_prefs:
@@ -463,7 +503,7 @@ class GjVolunteerAllocationGame(BaseGame):
             _req_num_leader = d.get(WorkDate.ATTR_NUM_LEADER, 1)
             _req_num_committee = d.get(WorkDate.ATTR_NUM_COMMITTE, 2)
             _req_num_noncommittee = d.get(WorkDate.ATTR_NUM_GENERAL, 3)
-            date = WorkDate(date=d[WorkDate.ATTR_DATE],
+            date = WorkDate(datestr=d[WorkDate.ATTR_DATE],
                             school_off=_school_off,
                             req_num_leader=_req_num_leader,
                             req_num_committee=_req_num_committee,
@@ -485,7 +525,7 @@ class GjVolunteerAllocationGame(BaseGame):
                 name=p[PersonPlayer.ATTR_NAME],
                 email_addr = p[PersonPlayer.ATTR_EMAIL],
                 phone_num = p[PersonPlayer.ATTR_PHONE],
-                childrens_ids = p[PersonPlayer.ATTR_CHILDREN],
+                children_ids = p[PersonPlayer.ATTR_CHILDREN],
                 role_id=_role_id
             )
             _persons.append(person)
@@ -506,80 +546,14 @@ class GjVolunteerAllocationGame(BaseGame):
         game = cls(_dates, _persons, clean)
         return game
 
-def test_1():
-    #dates_input = Util.read_yaml_to_dict(base_url, "dates.yml")
-    dates_input = [
-        { "date": "2024-04-01", },
-        {
-            "date": "2024-04-08",
-            "num_leader": 1,
-            "num_commitee": 2,
-            "num_general": 3,
-        },
-        { "date": "2024-04-15", },
-        { "date": "2024-04-22", }
-    ]
-    #guardian_input = Util.read_yaml_to_dict(base_url, "guardian.yml")
-    guardian_input = [
-        {
-            "id": 1,
-            "name": "guardian-name1",
-            "phone": "000-000-0000",
-            "email": "1@dot.com.dummy",
-            "children": {
-              "child_id": 1111,
-              "child_id": 1112},
-            "role_id": 1
-        },
-        {
-            "id": 2,
-            "name": "guardian-name2",
-            "phone": "000-000-0000",
-            "email": "2@dot.com.dummy",
-            "children": {
-              "child_id": 1113},
-            "role_id": 2
-        },
-        {
-            "id": 3,
-            "name": "guardian-name3",
-            "phone": "000-000-0000",
-            "email": "3@dot.com.dummy",
-            "children": {
-                "child_id": 1114,
-                "child_id": 1115,
-                "child_id": 1116},
-            "role_id": 2
-        },
-        {
-            "id": 4,
-            "name": "guardian-name4",
-            "phone": "000-000-0000",
-            "email": "4@dot.com.dummy",
-            "children": {
-              "child_id": 1117},
-            "role_id": 1
-        },
-        {
-            "id": 5,
-            "name": "guardian-name5",
-            "phone": "000-000-0000",
-            "email": "5@dot.com.dummy",
-            "children": {
-                "child_id": 1118,
-                "child_id": 1119,
-                "child_id": 1120,
-                "child_id": 1121},
-            "role_id": 2
-        },
-    ]
+    def check_stability(self):
+        """
+        @override
+        """
+        pass
 
-    num_dates = len(dates_input)
-    num_guardians = len(guardian_input)
-    game = GjVolunteerAllocationGame.create_from_dictionaries(
-        dates_input, guardian_input)
-    solution = game.solve()
-    for date, guardians in solution.items():
-        print(f"{date} ({date.capacity}): {guardians}")
-    GjVolunteerAllocationGame.print_tabular(solution)
-
+    def check_validity(self):
+        """
+        @override
+        """
+        pass

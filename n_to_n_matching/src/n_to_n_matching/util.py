@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
 import urllib
 import yaml
 
@@ -28,3 +29,10 @@ class Util:
         with urllib.request.urlopen(url) as response:
             dictionary = yaml.safe_load(response.read())
         return dictionary
+
+    @staticmethod
+    def validate_date_str(date_text):
+        try:
+            datetime.date.fromisoformat(date_text)
+        except ValueError:
+            raise ValueError("'{}' is incorrect data format, should be YYYY-MM-DD".format(date_text))
