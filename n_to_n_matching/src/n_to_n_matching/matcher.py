@@ -41,6 +41,9 @@ class PersonBank():
 
     @property
     def persons(self):
+        """
+        @rtype dict
+        """
         return self._persons
 
     @persons.setter
@@ -52,7 +55,14 @@ class PersonBank():
 
     @property
     def max_allowance(self):
+        """
+        @return: A dict format returned by `max_allowed_days_per_person`
+        """
         return self._max_allowance
+
+    @max_allowance.setter
+    def max_allowance(self, val):
+        self._max_allowance = val
 
 
 class GjVolunteerMatching(ManyToManyMatching):
@@ -126,11 +136,11 @@ class WorkDate():
         self.set_date(val)
 
     @property
-    def assignees(self):
+    def assignees_committee(self):
         return self._assignees
 
-    @assignees.setter
-    def assignees(self, val):
+    @assignees_committee.setter
+    def assignees_committee(self, val):
         self._assignees = val
 
     @property
@@ -140,6 +150,18 @@ class WorkDate():
     @assignees_noncommitee.setter
     def assignees_noncommitee(self, val):
         self._assignees_noncommitee = val
+
+    @property
+    def req_num_assignee_committee(self):
+        return self._required_committee
+
+    @property
+    def req_num_assignee_noncommittee(self):
+        return self._required_noncommittee
+
+    @property
+    def req_num_leader(self):
+        return self._req_num_leader
 
 
 class PersonRole(Enum):
@@ -169,8 +191,9 @@ class PersonPlayer(Player):
        """
        @param role_id: Any of `GuardianRole` enum item.
        """
+       super().__init__(name)  # For the rest of __init__, assigning `name` can be skipped because it's done in super class.
        self._id = id
-       self._name = name
+       self.name = name
        self._email_addr = email_addr
        self._phone_num = phone_num
        self._role_id = role_id
@@ -183,6 +206,14 @@ class PersonPlayer(Player):
     @id.setter
     def id(self, val):
         raise AttributeError("`id` should only be settable as an initial input and cannot be overwritten.")
+
+    @property
+    def role_id(self):
+        return self._role_id
+    
+    @role_id.setter
+    def role_id(self, val):
+        raise AttributeError("`role_id` should only be settable as an initial input and cannot be overwritten.")
 
     
 class GjVolunteerAllocationGame(BaseGame):
@@ -240,7 +271,7 @@ class GjVolunteerAllocationGame(BaseGame):
             1. True/False whether the number of retval-1 meets the requirement.
             2. True/False whether the number of retval-2 meets the requirement.            
         """
-        _enough_committee = date.assignees_commitee == date.req_num_assignee_committee
+        _enough_committee = date.assignees_committee == date.req_num_assignee_committee
         _enough_noncommittee = date.assignees_noncommitee == date.req_num_assignee_noncommittee
         return _enough_committee, _enough_noncommittee
 
@@ -260,56 +291,73 @@ class GjVolunteerAllocationGame(BaseGame):
                 dates_attention.append(date)
         return dates_attention, dates_lgtm
 
-    def total_slots_required(dates):
+    def total_slots_required(self, dates):
         """
         @summary: Returns the number in the requirement. Note this method only handles the static info, NOT reflecting the current state of instances.
         @rtype int, int, int
         """
-        needed_leader, needed_committee, needed_general = 0
+        needed_leader, needed_committee, needed_general = 0, 0, 0
         for day in dates:
             needed_leader += day.req_num_leader
-            needed_committee += day.req_num_committee
-            needed_general += day.req_num_noncommittee
+            needed_committee += day.req_num_assignee_committee
+            needed_general += day.req_num_assignee_noncommittee
         return needed_leader, needed_committee, needed_general
 
-    def total_persons_available(persons):
+    def total_persons_available(self, persons):
         """
-        @summary: Returns the number in the requirement. Note this method only handles the static info, NOT reflecting the current state of instances.
+        @summary: Returns the number in the requirement. Note this method only handles the static 子無し羨！って書こうと思ったけど色々大変とお察しします．info, NOT reflecting the current state of instances.
+        @type persons: `PersonBank`
         @rtype int, int, int
         """
-        avaialable_leader, avaialable_committee, avaialable_general = 0
-        for p in persons:
-            rid = p.role_id
-            if rid == PersonRole.LEADER:
+        avaialable_leader, avaialable_committee, avaialable_general = 0, 0, 0
+        for key, value in persons.persons.items():
+            rid = value.role_id
+            if rid == PersonRole.LEADER.value:
                 avaialable_leader += 1
-            elif rid == PersonRole.COMMITTEE:
+            elif rid == PersonRole.COMMITTEE.value:
                 avaialable_committee += 1
-            elif rid == PersonRole.GENERAL:
+            elif rid == PersonRole.GENERAL.value:
                 avaialable_general += 1
             else:
                 #TODO print error
-                print("Illegal person role-id found. Ignoring.")
+                print("Illegal person role-id found. PID: {}, Person obj: {}, role_id: {}. Ignoring.".format(key, value, rid))
         return avaialable_leader, avaialable_committee, avaialable_general
                
-    def max_allowed_days_per_person(self, dates):
+    def max_allowed_days_per_person(self, dates, workers):
         """
         @summary:  Returning 2 sets of info for 3 kids of roles (leader, committee, generals):
             - max_*: Maximum number of times each person should be assigned to the correspondent role in the given period.
             - unlucky_*: Number of persons who need to take on the correspondent role once more than `max_*` number.
+        @type workers: `PersonBank`
         @return: Dictionary structure should look like this:
             {
                 PersonRole.LEADER: {ATTR_MAX_OCCURRENCE: max_leader, ATTR_UNLUCKY_PERSON_NUMS: unlucky_leaders},
                 PersonRole.COMMITTEE: {ATTR_MAX_OCCURRENCE: max_committee, ATTR_UNLUCKY_PERSON_NUMS: unlucky_committees},
                 PersonRole.GENERAL: {ATTR_MAX_OCCURRENCE: max_general, ATTR_UNLUCKY_PERSON_NUMS: unlucky_generals},
             }
+        @raise ValueError: If not enough number of persons with a role is given in `workers`.
         """
+        def _debug_print_max_per_person(*args):
+            print("Debug:\t")
+            for arg in args:
+                print(f'\t{arg=}')
+
         # Find the total number of slots need to be filled in all `dates`.
         needed_leader, needed_committee, needed_general = self.total_slots_required(dates)
-        available_leader, available_committee, available_general = self.total_persons_available(dates)
+        available_leader, available_committee, available_general = self.total_persons_available(workers)
+        if not all([available_leader, available_committee, available_general]):
+            raise ValueError("Any one of these must not be 0: available_leader={}, available_committee={}, available_general={}".format(
+                available_leader, available_committee, available_general))
+        print("Debug: #dates {}".format(len(dates)))
+        _debug_print_max_per_person(needed_leader, needed_committee, needed_general, available_leader, available_committee, available_general)
 
-        max_leader, unlucky_leaders = divmod(available_leader, needed_leader)
-        max_committee, unlucky_committees = divmod(available_committee, needed_committee)
-        max_general, unlucky_generals = divmod(available_general, needed_general)
+        try:
+            max_leader, unlucky_leaders = divmod(needed_leader, available_leader)
+            max_committee, unlucky_committees = divmod(needed_committee, available_committee)
+            max_general, unlucky_generals = divmod(needed_general, available_general)
+        except ZeroDivisionError as e:
+            raise ZeroDivisionError("Theres is at least one arg that is zero. {}".format(
+                _debug_print_max_per_person(max_leader, unlucky_leaders, max_committee, unlucky_committees, max_general, unlucky_generals))) from e
         max_allowance = {
             PersonRole.LEADER: {
                 self.ATTR_MAX_OCCURRENCE_PER_ROLE: max_leader,
@@ -321,6 +369,7 @@ class GjVolunteerAllocationGame(BaseGame):
                 self.ATTR_MAX_OCCURRENCE_PER_ROLE: max_general,
                 self.ATTR_UNLUCKY_PERSON_NUMS: unlucky_generals},
             }
+        print("Debug: max_allowance: {}".format(max_allowance))
         return max_allowance
 
     def _get_assigned_dates(self, person_id):
@@ -336,7 +385,7 @@ class GjVolunteerAllocationGame(BaseGame):
                         countednum += 1
                 return countednum
             
-            assigned = count(person_id, date.assignees, assigned)
+            assigned = count(person_id, date.assignees_committee, assigned)
             assigned = count(person_id, date.assignees_noncommitee, assigned)
         return assigned
 
@@ -349,27 +398,35 @@ class GjVolunteerAllocationGame(BaseGame):
         @throw ValueError
         """
         # `max_allowance``: dictionary that `GjVolunteerAllocationGame.max_allowed_days_per_person` returns.
-        if not self.max_allowance:
+        if not persons.max_allowance:
             raise RuntimeError("Field `max_allowance` is empty, which indicates something is wrong...TBD add how to troubleshoot")
         free_workers = []
-        fullybookd_workers = []
+        fullybooked_workers = []
         overlybooked_workers = []
-        for worker in self.persons:
-            assigned_dates = self._get_assigned_dates(worker.id)
-            this_person_allowance = self.max_allowance[worker.role_id]
+        for person_id, worker in persons.persons.items():
+            assigned_dates = self._get_assigned_dates(person_id)
+            # Maybe a bit unintuitive but passing a value via enum subclass is a valid way to access
+            # a value of a member of an enum class https://realpython.com/python-enum/#accessing-enumeration-members
+            this_person_allowance = persons.max_allowance[PersonRole(worker.role_id)]
+            _occurrence_per_role = this_person_allowance[self.ATTR_MAX_OCCURRENCE_PER_ROLE]
             # If a person's assigned dates is smaller than the role's max occurrence, then this person can take more dates.
-            if assigned_dates < this_person_allowance[self.ATTR_MAX_OCCURRENCE_PER_ROLE]:
+            if assigned_dates < _occurrence_per_role:
                 free_workers.append(worker)
-            elif assigned_dates == this_person_allowance[self.ATTR_MAX_OCCURRENCE_PER_ROLE]:
-                fullybookd_workers.append(worker)
-            elif assigned_dates + overbook_allowed_num == this_person_allowance[self.ATTR_MAX_OCCURRENCE_PER_ROLE]:
+            elif assigned_dates == _occurrence_per_role:
+                fullybooked_workers.append(worker)
+            elif assigned_dates + overbook_allowed_num == _occurrence_per_role:
                 overlybooked_workers.append(worker)
             elif this_person_allowance[self.ATTR_MAX_OCCURRENCE_PER_ROLE] < assigned_dates + overbook_allowed_num:
                 raise ValueError("Person ID {} is assigned for '{}' days, which exceeds the limit assigned days. TODO Needs figured out".format(
-                    worker.id, assigned_dates))
+                    person_id, assigned_dates))
+            else:
+                print("Debug _occurrence_per_role = {} not falling any criteria. Skipping for now.".format(_occurrence_per_role))
+            print("Debug PersonRole(worker.role_id) {}\n\tassigned_dates {}, _occurrence_per_role {}".format(
+                PersonRole(worker.role_id), assigned_dates, _occurrence_per_role))
+        print("Debug: free_workers {}\n\tfullybookd_workers {}\n\toverlybooked_workers {}".format(free_workers, fullybooked_workers, overlybooked_workers))
         if not free_workers:
             raise ValueError("All given persons are already assigned to the max number of dates")
-        return free_workers, fullybookd_workers, overlybooked_workers
+        return free_workers, fullybooked_workers, overlybooked_workers
 
     def assign_person(self, date, person_bank, overbook=True):
         """
@@ -384,7 +441,7 @@ class GjVolunteerAllocationGame(BaseGame):
 
           Also, `date` is NOT returned explicitly, but potentially its `assignee_ids_{commitee, noncommitee}` field is updated.
         """
-        free_workers, booked_persons = self.find_free_workers(person_bank.persons)
+        free_workers, booked_persons = self.find_free_workers(person_bank)
         # Fill in the assignee if a `date` doesn't have enough assignees.
         is_enough_commitee, is_enough_noncommitee = False, False
 
@@ -444,7 +501,7 @@ class GjVolunteerAllocationGame(BaseGame):
             raise ValueError("The input `dates` have all slots filled already.")
         ## Ok, there are some dates that need assignees.
         ## Continuing screening. Determine the maximum #days each person can be assigned to.
-        workers.max_allowance = self.max_allowed_days_per_person(dates)
+        workers.max_allowance = self.max_allowed_days_per_person(dates, workers)
 
         ## Continuing screening. See if there are workers who have a room to be assigned.
         free_workers, booked_person, overlybooked_workers = [], [], []
