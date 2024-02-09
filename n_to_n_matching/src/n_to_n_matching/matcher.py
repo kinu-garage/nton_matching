@@ -16,6 +16,7 @@
 
 from datetime import date
 from enum import Enum
+import logging
 
 from matching import BaseGame, ManyToManyMatching
 from matching.exceptions import (
@@ -101,6 +102,7 @@ class WorkDate():
                  req_num_committee=3,
                  req_num_leader=1,
                  req_num_noncommittee=2,
+                 assignee_leader=[],
                  assignee_commitee=[],
                  assignee_noncommitee=[]):
         """
@@ -113,8 +115,9 @@ class WorkDate():
         self._req_num_leader = req_num_leader
         self._required_committee = req_num_committee
         self._required_noncommittee = req_num_noncommittee
+        self._assignees_leader = assignee_leader
         self._assignees = assignee_commitee
-        self._assignees_noncommitee = assignee_noncommitee
+        self._assignees_noncommittee = assignee_noncommitee
 
     def set_date(self, datestr):
         Util.validate_date_str(datestr)
@@ -144,12 +147,20 @@ class WorkDate():
         self._assignees = val
 
     @property
-    def assignees_noncommitee(self):
-        return self._assignees_noncommitee
+    def assignees_noncommittee(self):
+        return self._assignees_noncommittee
 
-    @assignees_noncommitee.setter
-    def assignees_noncommitee(self, val):
-        self._assignees_noncommitee = val
+    @assignees_noncommittee.setter
+    def assignees_noncommittee(self, val):
+        self._assignees_noncommittee = val
+
+    @property
+    def assignees_leader(self):
+        return self._assignees_leader
+
+    @assignees_leader.setter
+    def assignees_leader(self, val):
+        self._assignees_leader = val
 
     @property
     def req_num_assignee_committee(self):
@@ -178,6 +189,7 @@ class PersonPlayer(Player):
     ATTR_PHONE = "phone"
     ATTR_CHILDREN = "children"
     ATTR_ROLE_ID = "role_id"
+    TYPE_OBLIGATION_LEADER = "leader"
     TYPE_OBLIGATION_COMMITEE = "commitee"
     TYPE_OBLIGATION_NONCOMMITEE = "non-commitee"
 
@@ -222,17 +234,32 @@ class GjVolunteerAllocationGame(BaseGame):
     ATTR_MAX_OCCURRENCE_PER_ROLE = "max_occurence"
     ATTR_UNLUCKY_PERSON_NUMS = "num_unlucky_person"
 
-    def __init__(self, dates, workers, clean=False):
+    def __init__(self, dates, workers, clean=False, logger_obj=None):
         """
         """
+        super().__init__(clean)
         self._dates = dates
         self._workers = PersonBank(workers)
-        super().__init__(clean)
         self._check_inputs()
+        self._logger = self._set_logger(logger_obj)
 
     @classmethod
     def print_tabular(cls, solutions):
         raise NotImplementedError()
+
+    def _set_logger(self, logger_obj):
+        if logger_obj:
+            return logger_obj
+        logger = logging.getLogger(__name__)
+        _stream_handler = logging.StreamHandler()
+        _stream_handler.setLevel(logging.INFO)
+        _stream_format = logging.Formatter('%(name)s - %(levelname)s: %(message)s')
+        _stream_handler.setFormatter(_stream_format)
+        # TODO For some reason, setting the log level in a handler here
+        # doesn't seem to take effect. So setting basicConfig.
+        logging.basicConfig(level=logging.INFO)
+        #logger.addHandler(_stream_handler)
+        return logger
 
     def _check_inputs(self):
         """
@@ -266,14 +293,15 @@ class GjVolunteerAllocationGame(BaseGame):
         @summary Returns eval result if a given `date` has enough numbers of assignees.
             
         @type date: n_to_n_matching.WorkDate
-        @rtype: bool, bool
-        @return: Return two boolean values of:
+        @rtype: bool, bool, bool
+        @return: Return 3 boolean values of:
             1. True/False whether the number of retval-1 meets the requirement.
             2. True/False whether the number of retval-2 meets the requirement.            
         """
-        _enough_committee = date.assignees_committee == date.req_num_assignee_committee
-        _enough_noncommittee = date.assignees_noncommitee == date.req_num_assignee_noncommittee
-        return _enough_committee, _enough_noncommittee
+        _enough_leaders = len(date.assignees_leader) == date.req_num_leader
+        _enough_committee = len(date.assignees_committee) == date.req_num_assignee_committee
+        _enough_noncommittee = len(date.assignees_noncommittee) == date.req_num_assignee_noncommittee
+        return _enough_leaders, _enough_committee, _enough_noncommittee
 
     def find_dates_need_attention(self, dates):
         """
@@ -284,11 +312,13 @@ class GjVolunteerAllocationGame(BaseGame):
         dates_attention = []
         dates_lgtm = []
         for date in dates:
-            _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date)
-            if _enough_committee and _enough_noncommittee:
+            _enough_leaders, _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date)
+            if all([_enough_leaders, _enough_committee, _enough_noncommittee]):
                 dates_lgtm.append(date)
             else:
                 dates_attention.append(date)
+        self._logger.info("dates_attention: {} dates_lgtm: {}".format(
+            dates_attention, dates_lgtm))
         return dates_attention, dates_lgtm
 
     def total_slots_required(self, dates):
@@ -305,7 +335,7 @@ class GjVolunteerAllocationGame(BaseGame):
 
     def total_persons_available(self, persons):
         """
-        @summary: Returns the number in the requirement. Note this method only handles the static 子無し羨！って書こうと思ったけど色々大変とお察しします．info, NOT reflecting the current state of instances.
+        @summary: Returns the number in the requirement. Note this method only handles the static info, NOT reflecting the current state of instances.
         @type persons: `PersonBank`
         @rtype int, int, int
         """
@@ -348,8 +378,8 @@ class GjVolunteerAllocationGame(BaseGame):
         if not all([available_leader, available_committee, available_general]):
             raise ValueError("Any one of these must not be 0: available_leader={}, available_committee={}, available_general={}".format(
                 available_leader, available_committee, available_general))
-        print("Debug: #dates {}".format(len(dates)))
-        _debug_print_max_per_person(needed_leader, needed_committee, needed_general, available_leader, available_committee, available_general)
+        self._logger.info("#dates {}".format(len(dates)))
+        #_debug_print_max_per_person(needed_leader, needed_committee, needed_general, available_leader, available_committee, available_general)
 
         try:
             max_leader, unlucky_leaders = divmod(needed_leader, available_leader)
@@ -369,24 +399,33 @@ class GjVolunteerAllocationGame(BaseGame):
                 self.ATTR_MAX_OCCURRENCE_PER_ROLE: max_general,
                 self.ATTR_UNLUCKY_PERSON_NUMS: unlucky_generals},
             }
-        print("Debug: max_allowance: {}".format(max_allowance))
+        self._logger.info("max_allowance: {}".format(max_allowance))
         return max_allowance
 
     def _get_assigned_dates(self, person_id):
         """
+        @summary Returns the number that a person of `person_id` is assigned to
+          in the period that is given to the tool, regardless the type
+          of the role.
         @note TODO The method relies on a member variable (`_dates`), which I don't like. So there's a room for refactoring.
         @rtype int
         """
         assigned = 0
+
+        def count(person_id, persons, countednum):
+            for person in persons:
+                if person.id == person_id:
+                    countednum += 1
+            return countednum
+
         for date in self._dates:
-            def count(person_id, persons, countednum):
-                for person in persons:
-                    if person.id == person_id:
-                        countednum += 1
-                return countednum
-            
-            assigned = count(person_id, date.assignees_committee, assigned)
-            assigned = count(person_id, date.assignees_noncommitee, assigned)
+            assigned_l = count(person_id, date.assignees_leader, assigned)
+            assigned_c = count(person_id, date.assignees_committee, assigned)
+            assigned_nc = count(person_id, date.assignees_noncommittee, assigned)
+            self._log_date_content(date)
+        assigned = assigned_l + assigned_c + assigned_nc
+        self._logger.info("person_id: {} assigned_l: {} assigned_c: {} assigned_nc: {}".format(
+            person_id, assigned_l, assigned_c, assigned_nc))
         return assigned
 
     def find_free_workers(self, persons, overbook_allowed_num=1):
@@ -395,7 +434,8 @@ class GjVolunteerAllocationGame(BaseGame):
         @type persons: PersonBank
         @param overbook_allowed_num: Number of times an overbooked person can take.
         @rtype: [GuardianPlayer], [GuardianPlayer], [GuardianPlayer]
-        @throw ValueError
+        @return: Even when any of the return values is empty, the method does NOT warn the caller. 
+          i.e. It's the caller's responsibility to check the returned values' validity.
         """
         # `max_allowance``: dictionary that `GjVolunteerAllocationGame.max_allowed_days_per_person` returns.
         if not persons.max_allowance:
@@ -405,6 +445,7 @@ class GjVolunteerAllocationGame(BaseGame):
         overlybooked_workers = []
         for person_id, worker in persons.persons.items():
             assigned_dates = self._get_assigned_dates(person_id)
+            max_days_incl_overbook = assigned_dates + overbook_allowed_num
             # Maybe a bit unintuitive but passing a value via enum subclass is a valid way to access
             # a value of a member of an enum class https://realpython.com/python-enum/#accessing-enumeration-members
             this_person_allowance = persons.max_allowance[PersonRole(worker.role_id)]
@@ -414,19 +455,50 @@ class GjVolunteerAllocationGame(BaseGame):
                 free_workers.append(worker)
             elif assigned_dates == _occurrence_per_role:
                 fullybooked_workers.append(worker)
-            elif assigned_dates + overbook_allowed_num == _occurrence_per_role:
+            elif max_days_incl_overbook == _occurrence_per_role:
                 overlybooked_workers.append(worker)
-            elif this_person_allowance[self.ATTR_MAX_OCCURRENCE_PER_ROLE] < assigned_dates + overbook_allowed_num:
-                raise ValueError("Person ID {} is assigned for '{}' days, which exceeds the limit assigned days. TODO Needs figured out".format(
-                    person_id, assigned_dates))
+            elif max_days_incl_overbook < this_person_allowance[self.ATTR_MAX_OCCURRENCE_PER_ROLE]:
+                raise ValueError("Person ID {} is assigned for '{}' days, which exceeds the limit assigned days={}. TODO Needs figured out".format(
+                    person_id, assigned_dates, max_days_incl_overbook))
             else:
-                print("Debug _occurrence_per_role = {} not falling any criteria. Skipping for now.".format(_occurrence_per_role))
-            print("Debug PersonRole(worker.role_id) {}\n\tassigned_dates {}, _occurrence_per_role {}".format(
+                self._logger.warning("_occurrence_per_role = '{}' not falling under any criteria. Skipping for now.".format(
+                    _occurrence_per_role))
+            self._logger.info("PersonRole(worker.role_id): '{}', assigned_dates: '{}', _occurrence_per_role: '{}'".format(
                 PersonRole(worker.role_id), assigned_dates, _occurrence_per_role))
-        print("Debug: free_workers {}\n\tfullybookd_workers {}\n\toverlybooked_workers {}".format(free_workers, fullybooked_workers, overlybooked_workers))
-        if not free_workers:
-            raise ValueError("All given persons are already assigned to the max number of dates")
+        self._logger.info("free_workers {}\nfullybookd_workers {}\noverlybooked_workers {}".format(
+            free_workers, fullybooked_workers, overlybooked_workers))
+        #if not free_workers:
+        #    raise ValueError("All given persons are already assigned to the max number of dates")
         return free_workers, fullybooked_workers, overlybooked_workers
+
+    def _assign_day(self, date, person_bank, overbook=False):
+        """
+        @type person_bank: [PersonBank]
+        @param persons: Pool of persons to be assigned if condition meets.
+        """
+        if not person_bank.persons:
+            raise ValueError("There's no pool of persons in the arg.")
+
+        _persons = person_bank.persons.values()
+        if overbook:
+            _free_ppl, fullybooked_ppl, overbooked_ppl = self.find_free_workers(person_bank)
+            _persons = fullybooked_ppl
+        for person in _persons:
+            _enough_leaders, _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date)
+            if all([_enough_leaders, _enough_committee, _enough_noncommittee]):
+                break
+            elif (not _enough_leaders) and (person.role_id == PersonRole.LEADER.value):
+                date.assignees_leader.append(person)
+            elif (not _enough_committee) and (person.role_id == PersonRole.COMMITTEE.value):
+                date.assignees_committee.append(person)
+            elif (not _enough_noncommittee) and (person.role_id == PersonRole.GENERAL.value):
+                date.assignees_noncommittee.append(person)
+            else:
+                self._logger.warning("TBD hmmm not sure what this means, needs looked into. _enough_leaders: {}, _enough_committee: {}, _enough_noncommittee: {}".format(
+                    _enough_leaders, _enough_committee, _enough_noncommittee))
+                continue
+        self._log_date_content(date, msg_prefix="At the end of `_assign_day`")
+        return date
 
     def assign_person(self, date, person_bank, overbook=True):
         """
@@ -441,42 +513,22 @@ class GjVolunteerAllocationGame(BaseGame):
 
           Also, `date` is NOT returned explicitly, but potentially its `assignee_ids_{commitee, noncommitee}` field is updated.
         """
-        free_workers, booked_persons = self.find_free_workers(person_bank)
         # Fill in the assignee if a `date` doesn't have enough assignees.
         is_enough_commitee, is_enough_noncommitee = False, False
 
         # Assign a personnel taken from `free_workers`. Once done, update the `free_workers`.
         #while (not is_enough_commitee) or (not is_enough_noncommitee):
-        date = self._assign_day(date, free_workers)
+        date = self._assign_day(date, person_bank)
 
         # Once evaluated all `free_workers` and yet the date is not filled with needed number of persons,
         # use `ATTR_UNLUCKY_PERSON_NUMS` persons.
-        _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date)        
-        if not (_enough_committee and _enough_noncommittee):
-            _overlybooked_workers = []
-            date = self._assign_day(date, booked_persons)
-            
-        return free_workers, booked_persons
+        _enough_leaders, _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date)        
+        if not all([_enough_leaders, _enough_committee, _enough_noncommittee]):
+            date = self._assign_day(date, person_bank, overbook=True)
 
-    def _assign_day(self, date, persons):
-        """
-        @param persons: Pool of persons to be assigned if condition meets.
-        """
-        if not persons:
-            raise ValueError("TBD error; There's no pool of persons who are fully booked but can be taking one additional.")
-        
-        for person in persons:
-            _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date)
-            if _enough_committee and _enough_noncommittee:
-                break
-            elif (not _enough_committee) and (person.role_id == PersonPlayer.TYPE_OBLIGATION_COMMITEE):
-                date.assignee_commitee.append(person)
-            elif (not _enough_noncommittee) and (person.role_id == PersonPlayer.TYPE_OBLIGATION_NONCOMMITEE):
-                date.assignee_noncommitee.append(person)
-            else:
-                print("TBD hmmm not sure what this means, needs looked into.")
-                continue
-        return date
+    def _log_date_content(self, date, msg_prefix=""):
+        self._logger.info("{} Date={} assignees stored. Leader: {}, Committee: {}, Non-commitee: {}".format(
+            msg_prefix, date.date, date.assignees_leader, date.assignees_committee, date.assignees_noncommittee))
 
     def match_per_date(self, dates, workers, optimal=""):
         """
@@ -513,8 +565,11 @@ class GjVolunteerAllocationGame(BaseGame):
 
         # Assign personnels per date
         for date in dates_need_attention:
+            self._log_date_content(date, msg_prefix="BEFORE assigning:")
+
             self.assign_person(date, workers)
             dates_lgtm.append(date)
+            self._log_date_content(date, msg_prefix="AFTER assigning a day:")
         return dates_lgtm        
 
     def solve(self, optimal=""):

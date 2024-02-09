@@ -12,7 +12,7 @@ def test_1():
             "num_general": 3,
         },
         { "date": "2024-04-15", },
-        { "date": "2024-04-22", }
+        { "date": "2024-04-22", },
     ]
     #guardian_input = Util.read_yaml_to_dict(base_url, "guardian.yml")
     guardian_input = [
