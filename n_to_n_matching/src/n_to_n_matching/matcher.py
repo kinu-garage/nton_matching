@@ -317,13 +317,16 @@ class GjVolunteerAllocationGame(BaseGame):
                 dates_lgtm.append(date)
             else:
                 dates_attention.append(date)
-        self._logger.info("dates_attention: {} dates_lgtm: {}".format(
-            dates_attention, dates_lgtm))
+        for date_attention in dates_attention:
+            self._log_date_content(date_attention, "find_dates_need_attention: date_attention")
+        for date_lgtm in dates_lgtm:
+            self._log_date_content(date_lgtm, "find_dates_need_attention: date_lgtm")
         return dates_attention, dates_lgtm
 
     def total_slots_required(self, dates):
         """
-        @summary: Returns the number in the requirement. Note this method only handles the static info, NOT reflecting the current state of instances.
+        @summary: Returns the number per each of 3 role in order to cover all the dates in the arg.
+        @note This method only handles the static info, NOT reflecting the current state of instances.
         @rtype int, int, int
         """
         needed_leader, needed_committee, needed_general = 0, 0, 0
@@ -352,7 +355,12 @@ class GjVolunteerAllocationGame(BaseGame):
                 #TODO print error
                 print("Illegal person role-id found. PID: {}, Person obj: {}, role_id: {}. Ignoring.".format(key, value, rid))
         return avaialable_leader, avaialable_committee, avaialable_general
-               
+
+    def _log_available_persons(self, dates, needed_leader, needed_committee, needed_general,
+                               available_leader, available_committee, available_general):
+        self._logger.info("#dates {}\n\tneeded_leader {} needed_committee {} needed_general {}\n\tavailable_leader {} available_committee {} available_general {}".format(
+            len(dates), needed_leader, needed_committee, needed_general, available_leader, available_committee, available_general))
+
     def max_allowed_days_per_person(self, dates, workers):
         """
         @summary:  Returning 2 sets of info for 3 kids of roles (leader, committee, generals):
@@ -378,8 +386,7 @@ class GjVolunteerAllocationGame(BaseGame):
         if not all([available_leader, available_committee, available_general]):
             raise ValueError("Any one of these must not be 0: available_leader={}, available_committee={}, available_general={}".format(
                 available_leader, available_committee, available_general))
-        self._logger.info("#dates {}".format(len(dates)))
-        #_debug_print_max_per_person(needed_leader, needed_committee, needed_general, available_leader, available_committee, available_general)
+        self._log_available_persons(dates, needed_leader, needed_committee, needed_general, available_leader, available_committee, available_general)
 
         try:
             max_leader, unlucky_leaders = divmod(needed_leader, available_leader)
@@ -497,7 +504,6 @@ class GjVolunteerAllocationGame(BaseGame):
                 self._logger.warning("TBD hmmm not sure what this means, needs looked into. _enough_leaders: {}, _enough_committee: {}, _enough_noncommittee: {}".format(
                     _enough_leaders, _enough_committee, _enough_noncommittee))
                 continue
-        self._log_date_content(date, msg_prefix="At the end of `_assign_day`")
         return date
 
     def assign_person(self, date, person_bank, overbook=True):
@@ -530,10 +536,10 @@ class GjVolunteerAllocationGame(BaseGame):
         self._logger.info("{} Date={} assignees stored. Leader: {}, Committee: {}, Non-commitee: {}".format(
             msg_prefix, date.date, date.assignees_leader, date.assignees_committee, date.assignees_noncommittee))
 
-    def match_per_date(self, dates, workers, optimal=""):
+    def match(self, dates, workers, optimal=""):
         """
-        @type person:
-        @param workers: `PersonBank`
+        @type dates: [n_to_n_matching.WorkDate]
+        @type workers: n_to_n_matching.PersonBank
         @param optimal: Unused for now, kept just to make it consistent with `matching` pkg.
         @return 
         @raise ValueError: If the given `dates` already filled with assignees.
@@ -554,22 +560,18 @@ class GjVolunteerAllocationGame(BaseGame):
         ## Ok, there are some dates that need assignees.
         ## Continuing screening. Determine the maximum #days each person can be assigned to.
         workers.max_allowance = self.max_allowed_days_per_person(dates, workers)
-
-        ## Continuing screening. See if there are workers who have a room to be assigned.
-        free_workers, booked_person, overlybooked_workers = [], [], []
-#        try:
-#            free_workers, booked_persons, overlybooked_workers = self._workers.find_free_workers(max_allowance, workers)
-#        except ValueError as e:
-#            print("TBD Honestly, I haven't thought of how to handle this situation yet.\n{}".format(str(e)))
         # END: Initial screening
 
         # Assign personnels per date
         for date in dates_need_attention:
             self._log_date_content(date, msg_prefix="BEFORE assigning:")
-
             self.assign_person(date, workers)
             dates_lgtm.append(date)
+            #dates_need_attention.remove(date)
+            # Temp test
+            date.assignees_leader = []
             self._log_date_content(date, msg_prefix="AFTER assigning a day:")
+            self._logger.info("AFTER assigning a day: All dates_need_attention={}\n\tdates_lgtm={}".format(dates_need_attention, dates_lgtm))
         return dates_lgtm        
 
     def solve(self, optimal=""):
@@ -578,7 +580,7 @@ class GjVolunteerAllocationGame(BaseGame):
         @return matching.BaseMatching
         """
         self._matching = GjVolunteerMatching(
-            self.match_per_date(self._dates, self._workers, optimal)
+            self.match(self._dates, self._workers, optimal)
         )
         return self._matching
 
@@ -586,6 +588,7 @@ class GjVolunteerAllocationGame(BaseGame):
     def create_from_dict_dates(cls, dates_prefs, clean=False):
         """
         @summary: Input data converter from text-based (dictionary in .yaml) format to Python format.
+          Only required attribute in each element in `dates_prefs` is `date` (i.e. other attributes are optional).
         @type dates_prefs: [{}]
         @param dates_prefs: e.g. 
             [
@@ -638,6 +641,7 @@ class GjVolunteerAllocationGame(BaseGame):
             cls, dates_prefs, personnel_prefs, clean=False):
         """
         @summary: Input data converter from text-based (dictionary in .yaml) format to Python format.
+          Or to see it from a different angle, this is a constructor https://realpython.com/instance-class-and-static-methods-demystified/#delicious-pizza-factories-with-classmethod
         @type dates_prefs: [{ "id", "name", "phone", "email", "children": {"child_id"}, "role_id" }]
         @type personnel_prefs: [{ "id", "name", "phone", "email", "children": {"child_id"}, "role_id" }]
         @param personnel_prefs: List particularly made by .yaml input.

@@ -1,21 +1,7 @@
 from n_to_n_matching.matcher import GjVolunteerAllocationGame
 
-
-def test_1():
-    #dates_input = Util.read_yaml_to_dict(base_url, "dates.yml")
-    dates_input = [
-        { "date": "2024-04-01", },
-        {
-            "date": "2024-04-08",
-            "num_leader": 1,
-            "num_commitee": 2,
-            "num_general": 3,
-        },
-        { "date": "2024-04-15", },
-        { "date": "2024-04-22", },
-    ]
-    #guardian_input = Util.read_yaml_to_dict(base_url, "guardian.yml")
-    guardian_input = [
+def fixture_persons_1():
+    return [
         {
             "id": 1,
             "name": "guardian-name1",
@@ -120,6 +106,25 @@ def test_1():
             "role_id": 3
         },
     ]
+
+def fixture_dates_1():
+    return [
+        { "date": "2024-04-01", },
+        {
+            "date": "2024-04-08",
+            "num_leader": 1,
+            "num_commitee": 3,
+            "num_general": 4,
+        },
+        { "date": "2024-04-15", },
+        { "date": "2024-04-22", },
+    ]
+
+def test_1():
+    #dates_input = Util.read_yaml_to_dict(base_url, "dates.yml")
+    dates_input = fixture_dates_1()
+    #guardian_input = Util.read_yaml_to_dict(base_url, "guardian.yml")
+    guardian_input = fixture_persons_1()
 
     num_dates = len(dates_input)
     num_guardians = len(guardian_input)
