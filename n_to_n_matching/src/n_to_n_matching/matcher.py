@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 from datetime import date
 from enum import Enum
 import logging
@@ -102,9 +103,9 @@ class WorkDate():
                  req_num_committee=3,
                  req_num_leader=1,
                  req_num_noncommittee=2,
-                 assignee_leader=[],
-                 assignee_commitee=[],
-                 assignee_noncommitee=[]):
+                 assignee_leader=None,
+                 assignee_commitee=None,
+                 assignee_noncommitee=None):
         """
         @param datestr: For now this needs to be "yyyy-mm-dd" format.
         @type assignees: [GuardianPlayer]
@@ -115,9 +116,12 @@ class WorkDate():
         self._req_num_leader = req_num_leader
         self._required_committee = req_num_committee
         self._required_noncommittee = req_num_noncommittee
-        self._assignees_leader = assignee_leader
-        self._assignees = assignee_commitee
-        self._assignees_noncommittee = assignee_noncommitee
+        # Initializing list must not happen in the parameter section of
+        # the constructor, which causes all instances referencing to the same
+        # single instance of a list, which is mutable. See https://stackoverflow.com/questions/2757116/
+        self._assignees_leader = assignee_leader if assignee_leader else []
+        self._assignees = assignee_commitee if assignee_commitee else []
+        self._assignees_noncommittee = assignee_noncommitee if assignee_noncommitee else []
 
     def set_date(self, datestr):
         Util.validate_date_str(datestr)
@@ -288,6 +292,12 @@ class GjVolunteerAllocationGame(BaseGame):
                 if self.clean:
                     self._remove_player(player, party, other_party)
 
+    def _log_dates(self, msg_prefix= "", dates=None):
+        if not dates:
+            dates = self._dates
+        for d in dates:
+            self._log_date_content(d, msg_prefix="Debug: {}: ".format(msg_prefix))
+        
     def eval_enough_assignees(self, date):
         """
         @summary Returns eval result if a given `date` has enough numbers of assignees.
@@ -489,7 +499,7 @@ class GjVolunteerAllocationGame(BaseGame):
         _persons = person_bank.persons.values()
         if overbook:
             _free_ppl, fullybooked_ppl, overbooked_ppl = self.find_free_workers(person_bank)
-            _persons = fullybooked_ppl
+            _persons = copy.deepcopy(fullybooked_ppl)
         for person in _persons:
             _enough_leaders, _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date)
             if all([_enough_leaders, _enough_committee, _enough_noncommittee]):
@@ -504,6 +514,7 @@ class GjVolunteerAllocationGame(BaseGame):
                 self._logger.warning("TBD hmmm not sure what this means, needs looked into. _enough_leaders: {}, _enough_committee: {}, _enough_noncommittee: {}".format(
                     _enough_leaders, _enough_committee, _enough_noncommittee))
                 continue
+            self._log_dates("116 Memory addr of date.assignees_leader: {}".format(id(date.assignees_leader)))
         return date
 
     def assign_person(self, date, person_bank, overbook=True):
@@ -525,12 +536,14 @@ class GjVolunteerAllocationGame(BaseGame):
         # Assign a personnel taken from `free_workers`. Once done, update the `free_workers`.
         #while (not is_enough_commitee) or (not is_enough_noncommitee):
         date = self._assign_day(date, person_bank)
+        self._log_dates("117")
 
         # Once evaluated all `free_workers` and yet the date is not filled with needed number of persons,
         # use `ATTR_UNLUCKY_PERSON_NUMS` persons.
         _enough_leaders, _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date)        
         if not all([_enough_leaders, _enough_committee, _enough_noncommittee]):
             date = self._assign_day(date, person_bank, overbook=True)
+        self._log_dates("118")
 
     def _log_date_content(self, date, msg_prefix=""):
         self._logger.info("{} Date={} assignees stored. Leader: {}, Committee: {}, Non-commitee: {}".format(
@@ -567,9 +580,8 @@ class GjVolunteerAllocationGame(BaseGame):
             self._log_date_content(date, msg_prefix="BEFORE assigning:")
             self.assign_person(date, workers)
             dates_lgtm.append(date)
+            self._log_dates("102")
             #dates_need_attention.remove(date)
-            # Temp test
-            date.assignees_leader = []
             self._log_date_content(date, msg_prefix="AFTER assigning a day:")
             self._logger.info("AFTER assigning a day: All dates_need_attention={}\n\tdates_lgtm={}".format(dates_need_attention, dates_lgtm))
         return dates_lgtm        
@@ -602,18 +614,12 @@ class GjVolunteerAllocationGame(BaseGame):
                 { "date": "2024-04-27", }
             ]
         """
-        _dates = []
-        for d in dates_prefs:
-            _school_off = d.get(WorkDate.ATTR_SCHOOL_OFF, False)
-            _req_num_leader = d.get(WorkDate.ATTR_NUM_LEADER, 1)
-            _req_num_committee = d.get(WorkDate.ATTR_NUM_COMMITTE, 2)
-            _req_num_noncommittee = d.get(WorkDate.ATTR_NUM_GENERAL, 3)
-            date = WorkDate(datestr=d[WorkDate.ATTR_DATE],
-                            school_off=_school_off,
-                            req_num_leader=_req_num_leader,
-                            req_num_committee=_req_num_committee,
-                            req_num_noncommittee=_req_num_noncommittee)
-            _dates.append(date)
+        _dates = [WorkDate(datestr=d[WorkDate.ATTR_DATE],
+                           school_off=d.get(WorkDate.ATTR_SCHOOL_OFF, False),
+                           req_num_leader=d.get(WorkDate.ATTR_NUM_LEADER, 1),
+                           req_num_committee=d.get(WorkDate.ATTR_NUM_COMMITTE, 2),
+                           req_num_noncommittee=d.get(WorkDate.ATTR_NUM_GENERAL, 3)
+                           ) for d in dates_prefs]            
         return _dates
 
     @classmethod
