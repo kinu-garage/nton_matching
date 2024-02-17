@@ -296,8 +296,21 @@ class GjVolunteerAllocationGame(BaseGame):
         if not dates:
             dates = self._dates
         for d in dates:
-            self._log_date_content(d, msg_prefix="Debug: {}: ".format(msg_prefix))
-        
+            self._log_date_content(d, msg_prefix="{}: ".format(msg_prefix))
+
+    def _log_available_persons(self, dates, needed_leader, needed_committee, needed_general,
+                               available_leader, available_committee, available_general):
+        self._logger.info("#dates {}\n\tneeded_leader {} needed_committee {} needed_general {}\n\tavailable_leader {} available_committee {} available_general {}".format(
+            len(dates), needed_leader, needed_committee, needed_general, available_leader, available_committee, available_general))
+
+    def _log_persons_per_bookings(
+            self, free_workers,
+            fullybooked_workers,
+            overlybooked_workers,
+            msg_prefix= ""):
+        self._logger.info("{} free_workers {}\nfullybookd_workers {}\noverlybooked_workers {}".format(
+            msg_prefix, free_workers, fullybooked_workers, overlybooked_workers))
+
     def eval_enough_assignees(self, date):
         """
         @summary Returns eval result if a given `date` has enough numbers of assignees.
@@ -366,11 +379,6 @@ class GjVolunteerAllocationGame(BaseGame):
                 print("Illegal person role-id found. PID: {}, Person obj: {}, role_id: {}. Ignoring.".format(key, value, rid))
         return avaialable_leader, avaialable_committee, avaialable_general
 
-    def _log_available_persons(self, dates, needed_leader, needed_committee, needed_general,
-                               available_leader, available_committee, available_general):
-        self._logger.info("#dates {}\n\tneeded_leader {} needed_committee {} needed_general {}\n\tavailable_leader {} available_committee {} available_general {}".format(
-            len(dates), needed_leader, needed_committee, needed_general, available_leader, available_committee, available_general))
-
     def max_allowed_days_per_person(self, dates, workers):
         """
         @summary:  Returning 2 sets of info for 3 kids of roles (leader, committee, generals):
@@ -419,31 +427,38 @@ class GjVolunteerAllocationGame(BaseGame):
         self._logger.info("max_allowance: {}".format(max_allowance))
         return max_allowance
 
-    def _get_assigned_dates(self, person_id):
+    def get_assigned_dates(self, person_id, dates):
         """
         @summary Returns the number that a person of `person_id` is assigned to
           in the period that is given to the tool, regardless the type
           of the role.
-        @note TODO The method relies on a member variable (`_dates`), which I don't like. So there's a room for refactoring.
+        @type dates: [WorkDate]
         @rtype int
         """
-        assigned = 0
+        if (not isinstance(person_id, int)) or (not isinstance(dates[0], WorkDate)):
+            raise TypeError("One of the args' type is incompatible. person_id: '{}', date[0]: '{}'".format(
+                type(person_id), type(date[0])))
 
-        def count(person_id, persons, countednum):
+        assign_count = 0
+        def count_assigned(person_id, persons, countednum):
             for person in persons:
-                if person.id == person_id:
+                self._logger.debug("161 person.id: {} person_id: {}".format(person.id, person_id))
+                if int(person.id) == int(person_id):
+                    self._logger.debug("162 Matched: person.id: {} person_id: {}".format(person.id, person_id))
                     countednum += 1
+            self._logger.debug("countednum {}".format(countednum))
             return countednum
 
-        for date in self._dates:
-            assigned_l = count(person_id, date.assignees_leader, assigned)
-            assigned_c = count(person_id, date.assignees_committee, assigned)
-            assigned_nc = count(person_id, date.assignees_noncommittee, assigned)
-            self._log_date_content(date)
-        assigned = assigned_l + assigned_c + assigned_nc
-        self._logger.info("person_id: {} assigned_l: {} assigned_c: {} assigned_nc: {}".format(
-            person_id, assigned_l, assigned_c, assigned_nc))
-        return assigned
+        assigned_leader = assigned_committee = assigned_noncommittee = 0
+        for date in dates:
+            assigned_leader += count_assigned(person_id, date.assignees_leader, assign_count)
+            assigned_committee += count_assigned(person_id, date.assignees_committee, assign_count)
+            assigned_noncommittee += count_assigned(person_id, date.assignees_noncommittee, assign_count)
+            #self._log_date_content(date)
+        assign_count = assigned_leader + assigned_committee + assigned_noncommittee
+        self._logger.info("person_id: {}, assign_count: {}, assigned_leader: {} assigned_committee: {} assigned_noncommittee: {}".format(
+            person_id, assign_count, assigned_leader, assigned_committee, assigned_noncommittee))
+        return assign_count
 
     def find_free_workers(self, persons, overbook_allowed_num=1):
         """
@@ -461,7 +476,9 @@ class GjVolunteerAllocationGame(BaseGame):
         fullybooked_workers = []
         overlybooked_workers = []
         for person_id, worker in persons.persons.items():
-            assigned_dates = self._get_assigned_dates(person_id)
+            # TODO Callin `_get_assigned_dates` in the next line relies on a member variable (`_dates`), which I don't like. So there's a room for refactoring.
+            assigned_dates = self.get_assigned_dates(
+                person_id, self._dates)
             max_days_incl_overbook = assigned_dates + overbook_allowed_num
             # Maybe a bit unintuitive but passing a value via enum subclass is a valid way to access
             # a value of a member of an enum class https://realpython.com/python-enum/#accessing-enumeration-members
@@ -482,11 +499,31 @@ class GjVolunteerAllocationGame(BaseGame):
                     _occurrence_per_role))
             self._logger.info("PersonRole(worker.role_id): '{}', assigned_dates: '{}', _occurrence_per_role: '{}'".format(
                 PersonRole(worker.role_id), assigned_dates, _occurrence_per_role))
-        self._logger.info("free_workers {}\nfullybookd_workers {}\noverlybooked_workers {}".format(
-            free_workers, fullybooked_workers, overlybooked_workers))
+        self._log_persons_per_bookings(free_workers, fullybooked_workers, overlybooked_workers, msg_prefix="151")
         #if not free_workers:
         #    raise ValueError("All given persons are already assigned to the max number of dates")
         return free_workers, fullybooked_workers, overlybooked_workers
+
+    def assign_day(self, date, person):
+        """
+        @todo Rename appropriately esp. there are other methods that have similar names.
+        """
+        if (not isinstance(person, PersonPlayer)) or (not isinstance(date, WorkDate)):
+            raise TypeError("One of the args' type is incompatible. person: '{}', date: '{}'".format(
+                type(person), type(date)))
+        _enough_leaders, _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date)
+        if all([_enough_leaders, _enough_committee, _enough_noncommittee]):
+            return  # TODO Think of better return value to communicate the result
+        elif (not _enough_leaders) and (person.role_id == PersonRole.LEADER.value):
+            date.assignees_leader.append(person)
+        elif (not _enough_committee) and (person.role_id == PersonRole.COMMITTEE.value):
+            date.assignees_committee.append(person)
+        elif (not _enough_noncommittee) and (person.role_id == PersonRole.GENERAL.value):
+            date.assignees_noncommittee.append(person)
+        else:
+            raise ValueError("TBD hmmm not sure what this means, needs looked into. _enough_leaders: {}, _enough_committee: {}, _enough_noncommittee: {}".format(
+                _enough_leaders, _enough_committee, _enough_noncommittee))
+        self._log_dates("116 Memory addr of date.assignees_leader: {}".format(id(date.assignees_leader)))
 
     def _assign_day(self, date, person_bank, overbook=False):
         """
@@ -496,25 +533,17 @@ class GjVolunteerAllocationGame(BaseGame):
         if not person_bank.persons:
             raise ValueError("There's no pool of persons in the arg.")
 
-        _persons = person_bank.persons.values()
+        _free_ppl, _fullybooked_ppl, overbooked_ppl = self.find_free_workers(person_bank)        
+        _persons = _free_ppl
         if overbook:
-            _free_ppl, fullybooked_ppl, overbooked_ppl = self.find_free_workers(person_bank)
-            _persons = copy.deepcopy(fullybooked_ppl)
+            self._logger.warn("====== overbooking is triggered. ======")
+            _persons = copy.deepcopy(_fullybooked_ppl)
         for person in _persons:
-            _enough_leaders, _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date)
-            if all([_enough_leaders, _enough_committee, _enough_noncommittee]):
-                break
-            elif (not _enough_leaders) and (person.role_id == PersonRole.LEADER.value):
-                date.assignees_leader.append(person)
-            elif (not _enough_committee) and (person.role_id == PersonRole.COMMITTEE.value):
-                date.assignees_committee.append(person)
-            elif (not _enough_noncommittee) and (person.role_id == PersonRole.GENERAL.value):
-                date.assignees_noncommittee.append(person)
-            else:
-                self._logger.warning("TBD hmmm not sure what this means, needs looked into. _enough_leaders: {}, _enough_committee: {}, _enough_noncommittee: {}".format(
-                    _enough_leaders, _enough_committee, _enough_noncommittee))
+            try:
+                self.assign_day(date, person)
+            except ValueError as e:
+                self._logger.warning(str(e))
                 continue
-            self._log_dates("116 Memory addr of date.assignees_leader: {}".format(id(date.assignees_leader)))
         return date
 
     def assign_person(self, date, person_bank, overbook=True):
@@ -536,7 +565,6 @@ class GjVolunteerAllocationGame(BaseGame):
         # Assign a personnel taken from `free_workers`. Once done, update the `free_workers`.
         #while (not is_enough_commitee) or (not is_enough_noncommitee):
         date = self._assign_day(date, person_bank)
-        self._log_dates("117")
 
         # Once evaluated all `free_workers` and yet the date is not filled with needed number of persons,
         # use `ATTR_UNLUCKY_PERSON_NUMS` persons.
@@ -580,7 +608,6 @@ class GjVolunteerAllocationGame(BaseGame):
             self._log_date_content(date, msg_prefix="BEFORE assigning:")
             self.assign_person(date, workers)
             dates_lgtm.append(date)
-            self._log_dates("102")
             #dates_need_attention.remove(date)
             self._log_date_content(date, msg_prefix="AFTER assigning a day:")
             self._logger.info("AFTER assigning a day: All dates_need_attention={}\n\tdates_lgtm={}".format(dates_need_attention, dates_lgtm))
