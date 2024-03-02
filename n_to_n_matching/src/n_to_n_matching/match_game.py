@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2024 Isaac Saito.
+# Copyright 2024 Kinu Garage Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,253 +15,51 @@
 # limitations under the License.
 
 import copy
-from datetime import date
-from enum import Enum
 import logging
 
-from matching import BaseGame, ManyToManyMatching
-from matching.exceptions import (
-    MatchingError,
-    PlayerExcludedWarning,
-)
-from matching.players import Player
+from matching import BaseGame
+from matching.exceptions import PlayerExcludedWarning
 
-from n_to_n_matching.util import Util
-
-
-class PersonBank():
-    def __init__(self, persons):
-        """
-        @type persons: [GuardianPlayer]
-        @param persons: Input list will be converted as a dict.
-        """
-        persons_dict = {}
-        for p in persons:
-            persons_dict[p.id] = p
-        self._persons = persons_dict
-        self._max_allowance = None
-
-    @property
-    def persons(self):
-        """
-        @rtype dict
-        """
-        return self._persons
-
-    @persons.setter
-    def persons(self, val):
-        raise AttributeError("`persons` is an initial raw input and cannot be overwritten.")
-
-    def update_person(self, person):
-        self.persons[person.id] = person                
-
-    @property
-    def max_allowance(self):
-        """
-        @return: A dict format returned by `max_allowed_days_per_person`
-        """
-        return self._max_allowance
-
-    @max_allowance.setter
-    def max_allowance(self, val):
-        self._max_allowance = val
+from n_to_n_matching.gj_rsc_matching import GjVolunteerMatching
+from n_to_n_matching.person_player import PersonBank, PersonPlayer, PersonRole
+from n_to_n_matching.gj_util import GjUtil
+from n_to_n_matching.workdate_player import WorkDate
 
 
-class GjVolunteerMatching(ManyToManyMatching):
-    """
-    @todo Consider optimizing and move code back to upstream as much
-    """
-    _KEY_DATE = "date"
-    _KEY_PERSON_ID = "person_id"
-    _KEY_ROLE_ID = "role_id"
-    def __init__(self, dictionary):
-        """
-        @type dictionary: dict
-        @param dictionary: needs the following keys:
-           - "date"
-           - "guardian_id"
-           - "role_id"
-        """        
-        super().__init__(dictionary)
-        # Validate the dict: Error if the `dictionary` doesn't have expected keys.
-
-    def add_item(self, new_match):
-        self._dataframe.append(new_match)
-
-
-class WorkDate(Player):
-    # Attiribute in text (e.g. .yaml) input file 
-    ATTR_DATE = "date"
-    ATTR_NUM_LEADER = "req_num_leader"
-    ATTR_NUM_COMMITTEE = "req_num_commitee"
-    ATTR_NUM_GENERAL = "req_num_general"
-    ATTR_SCHOOL_OFF = "school_off"
-    ATTR_LIST_ASSIGNED_LEADER = "assignees_leader"
-    ATTR_LIST_ASSIGNED_COMMITTEE = "assignees_committee"
-    ATTR_LIST_ASSIGNED_GENERAL = "assignees_general"
-
-    def __init__(self,
-                 datestr,
-                 school_off=False,
-                 req_num_committee=3,
-                 req_num_leader=1,
-                 req_num_noncommittee=2,
-                 assignee_leader=None,
-                 assignee_commitee=None,
-                 assignee_noncommitee=None):
-        """
-        @param datestr: For now this needs to be "yyyy-mm-dd" format.
-        @type assignees: [GuardianPlayer]
-        @param assignee_ids_commitee: Can be empty when a class instantiates.
-        """
-        super().__init__(datestr)  # For the rest of __init__, assigning `name` can be skipped because it's done in super class.
-        ##self.set_date(datestr)
-        self._school_off = school_off
-        self._req_num_leader = req_num_leader
-        self._required_committee = req_num_committee
-        self._required_noncommittee = req_num_noncommittee
-        # Initializing list must not happen in the parameter section of
-        # the constructor, which causes all instances referencing to the same
-        # single instance of a list, which is mutable. See https://stackoverflow.com/questions/2757116/
-        self._assignees_leader = assignee_leader if assignee_leader else []
-        self._assignees = assignee_commitee if assignee_commitee else []
-        self._assignees_noncommittee = assignee_noncommitee if assignee_noncommitee else []
-
-    def set_date(self, datestr):
-        Util.validate_date_str(datestr)
-        ymd = datestr.split("-")
-        year = int(ymd[0])
-        month = int(ymd[1])
-        day = int(ymd[2])
-        self.name = date(year, month, day)
-
-    @property
-    def date(self):
-        """
-        @rtype datetime.date
-        """
-        return self.name
-
-    @date.setter
-    def date(self, val):
-        self.set_date(val)
-
-    @property
-    def assignees_committee(self):
-        return self._assignees
-
-    @assignees_committee.setter
-    def assignees_committee(self, val):
-        self._assignees = val
-
-    @property
-    def assignees_noncommittee(self):
-        return self._assignees_noncommittee
-
-    @assignees_noncommittee.setter
-    def assignees_noncommittee(self, val):
-        self._assignees_noncommittee = val
-
-    @property
-    def assignees_leader(self):
-        return self._assignees_leader
-
-    @assignees_leader.setter
-    def assignees_leader(self, val):
-        self._assignees_leader = val
-
-    @property
-    def req_num_assignee_committee(self):
-        return self._required_committee
-
-    @property
-    def req_num_assignee_noncommittee(self):
-        return self._required_noncommittee
-
-    @property
-    def req_num_leader(self):
-        return self._req_num_leader
-
-    @property
-    def school_off(self):
-        return self._school_off
-
-
-class PersonRole(Enum):
-    LEADER = 1
-    COMMITTEE = 2
-    GENERAL = 3
-    CHILD = 4
-
-        
-class PersonPlayer(Player):
-    ATTR_ID = "id"
-    ATTR_EMAIL = "email"
-    ATTR_NAME = "name"
-    ATTR_PHONE = "phone"
-    ATTR_CHILDREN = "children"
-    ATTR_ROLE_ID = "role_id"
-    TYPE_OBLIGATION_LEADER = "leader"
-    TYPE_OBLIGATION_COMMITEE = "commitee"
-    TYPE_OBLIGATION_NONCOMMITEE = "non-commitee"
-
-    def __init__(self,
-                 name,
-                 id,
-                 email_addr,
-                 phone_num,
-                 role_id=PersonRole.GENERAL,
-                 children_ids=[]):
-       """
-       @param role_id: Any of `GuardianRole` enum item.
-       """
-       super().__init__(name)  # For the rest of __init__, assigning `name` can be skipped because it's done in super class.
-       self._id = id
-       self.name = name
-       self._email_addr = email_addr
-       self._phone_num = phone_num
-       self._role_id = role_id
-       self._children_ids = children_ids
-
-    @property
-    def id(self):
-        return self._id
-    
-    @id.setter
-    def id(self, val):
-        raise AttributeError("`id` should only be settable as an initial input and cannot be overwritten.")
-
-    @property
-    def role_id(self):
-        return self._role_id
-    
-    @role_id.setter
-    def role_id(self, val):
-        raise AttributeError("`role_id` should only be settable as an initial input and cannot be overwritten.")
-
-    
 class GjVolunteerAllocationGame(BaseGame):
     DATES = "dates"
     WORKERS = "workers"
     ATTR_MAX_OCCURRENCE_PER_ROLE = "max_occurence"
     ATTR_UNLUCKY_PERSON_NUMS = "num_unlucky_person"
 
-    def __init__(self, dates, workers, clean=False, logger_obj=None):
+    def __init__(self, dates, persons, clean=False, logger_obj=None):
         """
+        @type persons: [PersonPlayer]
+        @param persons: Will be converted to `PersonBank` class instance.
         """
         super().__init__(clean)
         self._dates = dates
-        self._workers = PersonBank(workers)
+        self._person_bank = PersonBank(persons)
         self._check_inputs()
         self._logger = self._set_logger(logger_obj)
 
     @classmethod
     def print_tabular_stdout(cls, solution):
         """
-        @param solution: Proprietarily formatted dict. TBD the example
+        @type solution: n_to_n_matching.gj_rsc_matching.GjVolunteerMatching
         """
+        _heading = "Result"
+        print(f"{_heading:*^40}")
+        print(f"Max allowance: {solution.max_allowance}")
+
+        for person_id, person_obj in solution.person_bank.persons.items():
+            num_assigned_dates, num_assigned_leader, num_assigned_committee, num_assigned_noncommittee = GjUtil.get_assigned_dates(
+                person_id, solution.dates_list)
+            print(f"P-ID {person_id}, role: {person_obj.role_id}, #assigned date: {num_assigned_dates}")
         for date, date_detail in solution.items():
-            print(f"{date}\n\tLeader: {date_detail[WorkDate.ATTR_LIST_ASSIGNED_LEADER]}\n\tCommitee assignee: {date_detail[WorkDate.ATTR_LIST_ASSIGNED_COMMITTEE]}\n\tGeneral assignee: {date_detail[WorkDate.ATTR_LIST_ASSIGNED_GENERAL]}")
+            print(f"{date}\n\tLeader: {date_detail[WorkDate.ATTR_LIST_ASSIGNED_LEADER]}\n\t",
+                  f"Commitee assignee: {date_detail[WorkDate.ATTR_LIST_ASSIGNED_COMMITTEE]}\n\t",
+                  f"General assignee: {date_detail[WorkDate.ATTR_LIST_ASSIGNED_GENERAL]}")
 
     def _set_logger(self, logger_obj):
         if logger_obj:
@@ -439,46 +237,17 @@ class GjVolunteerAllocationGame(BaseGame):
         self._logger.info("max_allowance: {}".format(max_allowance))
         return max_allowance
 
-    def get_assigned_dates(self, person_id, dates):
-        """
-        @summary Returns the number that a person of `person_id` is assigned to
-          in the period that is given to the tool, regardless the type
-          of the role.
-        @type dates: [WorkDate]
-        @rtype int
-        """
-        if (not isinstance(person_id, int)) or (not isinstance(dates[0], WorkDate)):
-            raise TypeError("One of the args' type is incompatible. person_id: '{}', date[0]: '{}'".format(
-                type(person_id), type(date[0])))
-
-        assign_count = 0
-        def count_assigned(person_id, persons, countednum):
-            for person in persons:
-                self._logger.debug("161 person.id: {} person_id: {}".format(person.id, person_id))
-                if int(person.id) == int(person_id):
-                    self._logger.debug("162 Matched: person.id: {} person_id: {}".format(person.id, person_id))
-                    countednum += 1
-            self._logger.debug("countednum {}".format(countednum))
-            return countednum
-
-        assigned_leader = assigned_committee = assigned_noncommittee = 0
-        for date in dates:
-            assigned_leader += count_assigned(person_id, date.assignees_leader, assign_count)
-            assigned_committee += count_assigned(person_id, date.assignees_committee, assign_count)
-            assigned_noncommittee += count_assigned(person_id, date.assignees_noncommittee, assign_count)
-            #self._log_date_content(date)
-        assign_count = assigned_leader + assigned_committee + assigned_noncommittee
-        self._logger.info("person_id: {}, assign_count: {}, assigned_leader: {} assigned_committee: {} assigned_noncommittee: {}".format(
-            person_id, assign_count, assigned_leader, assigned_committee, assigned_noncommittee))
-        return assign_count
-
     def find_free_workers(self, persons, overbook_allowed_num=1):
         """
         @summary: Returns the set of persons who are not yet assigned required number of the times in the given period.
         @type persons: PersonBank
         @param overbook_allowed_num: Number of times an overbooked person can take.
         @rtype: [GuardianPlayer], [GuardianPlayer], [GuardianPlayer]
-        @return: Even when any of the return values is empty, the method does NOT warn the caller. 
+        @return: 3 lists of `GuardianPlayer` instance, namely:
+           - No assignment.
+           - Fully assigned.
+           - Assigned more than the allowance.
+        @note: Even when any of the return values are empty, the method does NOT warn the caller.
           i.e. It's the caller's responsibility to check the returned values' validity.
         """
         # `max_allowance``: dictionary that `GjVolunteerAllocationGame.max_allowed_days_per_person` returns.
@@ -488,8 +257,8 @@ class GjVolunteerAllocationGame(BaseGame):
         fullybooked_workers = []
         overlybooked_workers = []
         for person_id, worker in persons.persons.items():
-            # TODO Callin `_get_assigned_dates` in the next line relies on a member variable (`_dates`), which I don't like. So there's a room for refactoring.
-            assigned_dates = self.get_assigned_dates(
+            # TODO Calling `_get_assigned_dates` in the next line relies on a member variable (`_dates`), which I don't like. So there's a room for refactoring.
+            assigned_dates, assigned_leader, assigned_committee, assigned_noncommittee = GjUtil.get_assigned_dates(
                 person_id, self._dates)
             max_days_incl_overbook = assigned_dates + overbook_allowed_num
             # Maybe a bit unintuitive but passing a value via enum subclass is a valid way to access
@@ -548,7 +317,7 @@ class GjVolunteerAllocationGame(BaseGame):
         _free_ppl, _fullybooked_ppl, overbooked_ppl = self.find_free_workers(person_bank)        
         _persons = _free_ppl
         if overbook:
-            self._logger.warn("====== overbooking is triggered. ======")
+            self._logger.warn(f"Overbooking is triggered.:=^20")
             _persons = copy.deepcopy(_fullybooked_ppl)
         for person in _persons:
             try:
@@ -580,19 +349,18 @@ class GjVolunteerAllocationGame(BaseGame):
 
         # Once evaluated all `free_workers` and yet the date is not filled with needed number of persons,
         # use `ATTR_UNLUCKY_PERSON_NUMS` persons.
-        _enough_leaders, _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date)        
+        _enough_leaders, _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date)
         if not all([_enough_leaders, _enough_committee, _enough_noncommittee]):
             date = self._assign_day(date, person_bank, overbook=True)
-        self._log_dates("118")
 
     def _log_date_content(self, date, msg_prefix=""):
-        self._logger.info("{} Date={} assignees stored. Leader: {}, Committee: {}, Non-commitee: {}".format(
+        self._logger.debug("{} Date={} assignees stored. Leader: {}, Committee: {}, Non-commitee: {}".format(
             msg_prefix, date.date, date.assignees_leader, date.assignees_committee, date.assignees_noncommittee))
 
-    def match(self, dates, workers, optimal=""):
+    def match(self, dates, person_bank, optimal=""):
         """
         @type dates: [n_to_n_matching.WorkDate]
-        @type workers: n_to_n_matching.PersonBank
+        @type person_bank: n_to_n_matching.PersonBank
         @param optimal: Unused for now, kept just to make it consistent with `matching` pkg.
         @return 
         @raise ValueError: If the given `dates` already filled with assignees.
@@ -612,62 +380,29 @@ class GjVolunteerAllocationGame(BaseGame):
             raise ValueError("The input `dates` have all slots filled already.")
         ## Ok, there are some dates that need assignees.
         ## Continuing screening. Determine the maximum #days each person can be assigned to.
-        workers.max_allowance = self.max_allowed_days_per_person(dates, workers)
+        person_bank.max_allowance = self.max_allowed_days_per_person(dates, person_bank)
         # END: Initial screening
 
         # Assign personnels per date
         for date in dates_need_attention:
             self._log_date_content(date, msg_prefix="BEFORE assigning:")
-            self.assign_person(date, workers)
+            self.assign_person(date, person_bank)
             dates_lgtm.append(date)
             #dates_need_attention.remove(date)
             self._log_date_content(date, msg_prefix="AFTER assigning a day:")
-            self._logger.info("AFTER assigning a day: All dates_need_attention={}\n\tdates_lgtm={}".format(dates_need_attention, dates_lgtm))
+            self._logger.debug("AFTER assigning a day: All dates_need_attention={}\n\tdates_lgtm={}".format(dates_need_attention, dates_lgtm))
         return dates_lgtm
-    
-    def dates_list_to_dict(self, list_dates):
-        """
-        @type list_dates: [WorkDate]
-        @rtype: dict
-        @return: Example format:
-           {
-             "str": {
-                WorkDate.ATTR_DATE: str
-                WorkDate.ATTR_LIST_ASSIGNED_LEADER: [PersonPlayer],
-                WorkDate.ATTR_LIST_ASSIGNED_COMMITTEE: [PersonPlayer],
-                WorkDate.ATTR_LIST_ASSIGNED_GENERAL: [PersonPlayer],
-                WorkDate.ATTR_NUM_LEADER: int,
-                WorkDate.ATTR_NUM_COMMITTEE: int,
-                WorkDate.ATTR_NUM_GENERAL: int,
-                WorkDate.ATTR_SCHOOL_OFF: bool
-              }
-           }
-        """
-        dict_dates = {}
-        if not list_dates:
-            raise ValueError("Arg `list_dates` must not be empty")
-        for date in list_dates:
-            date_dict = {
-                WorkDate.ATTR_DATE: date.name,  # `WorkDate(name)` represents the date in `str` format.
-                WorkDate.ATTR_LIST_ASSIGNED_LEADER: date.assignees_leader,
-                WorkDate.ATTR_LIST_ASSIGNED_COMMITTEE: date.assignees_committee,
-                WorkDate.ATTR_LIST_ASSIGNED_GENERAL: date.assignees_noncommittee,
-                WorkDate.ATTR_NUM_LEADER: date.req_num_leader,
-                WorkDate.ATTR_NUM_COMMITTEE: date.req_num_assignee_committee,
-                WorkDate.ATTR_NUM_GENERAL: date.req_num_assignee_noncommittee,
-                WorkDate.ATTR_SCHOOL_OFF: date.school_off
-            }
-            dict_dates[date.name] = date_dict
-        return dict_dates
 
     def solve(self, optimal=""):
         """
         @description: 
-        @return matching.BaseMatching
+        @return `GjVolunteerMatching`
         """
-        dates_list = self.match(self._dates, self._workers, optimal)
+        dates_list = self.match(self._dates, self._person_bank, optimal)
         self._matching = GjVolunteerMatching(
-            self.dates_list_to_dict(dates_list)            
+            dates_list,
+            self._person_bank,
+            self._person_bank.max_allowance
         )
         return self._matching
 
@@ -702,6 +437,7 @@ class GjVolunteerAllocationGame(BaseGame):
         """
         @summary: Input data converter from text-based (dictionary in .yaml) format to Python format.
         @type personnel_prefs: [{ "id", "name", "phone", "email", "children": {"child_id"}, "role_id" }]
+        @rtype: [PersonPlayer]
         """
         _persons = []
         for p in person_prefs:

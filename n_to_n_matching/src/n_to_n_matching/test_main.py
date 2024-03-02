@@ -1,4 +1,23 @@
-from n_to_n_matching.matcher import GjVolunteerAllocationGame, WorkDate
+#!/usr/bin/env python
+
+# Copyright 2024 Kinu Garage Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from n_to_n_matching.match_game import GjVolunteerAllocationGame
+from n_to_n_matching.person_player import PersonRole
+from n_to_n_matching.workdate_player import WorkDate
+
 
 def fixture_persons_1():
     return [
@@ -10,7 +29,7 @@ def fixture_persons_1():
             "children": {
               "child_id": 1111,
               "child_id": 1112},
-            "role_id": 1
+            "role_id": PersonRole.LEADER.value
         },
         {
             "id": 2,
@@ -19,7 +38,7 @@ def fixture_persons_1():
             "email": "2@dot.com.dummy",
             "children": {
               "child_id": 1113},
-            "role_id": 2
+            "role_id": PersonRole.COMMITTEE.value
         },
         {
             "id": 3,
@@ -30,7 +49,7 @@ def fixture_persons_1():
                 "child_id": 1114,
                 "child_id": 1115,
                 "child_id": 1116},
-            "role_id": 2
+            "role_id": PersonRole.COMMITTEE.value
         },
         {
             "id": 4,
@@ -39,7 +58,7 @@ def fixture_persons_1():
             "email": "4@dot.com.dummy",
             "children": {
               "child_id": 1117},
-            "role_id": 1
+            "role_id": PersonRole.LEADER.value
         },
         {
             "id": 5,
@@ -51,7 +70,7 @@ def fixture_persons_1():
                 "child_id": 1119,
                 "child_id": 1120,
                 "child_id": 1121},
-            "role_id": 2
+            "role_id": PersonRole.COMMITTEE.value
         },
         {
             "id": 6,
@@ -60,7 +79,7 @@ def fixture_persons_1():
             "email": "6@dot.com.dummy",
             "children": {
                 "child_id": 116},
-            "role_id": 3
+            "role_id": PersonRole.GENERAL.value
         },
         {
             "id": 7,
@@ -70,7 +89,7 @@ def fixture_persons_1():
             "children": {
                 "child_id": 1171,
                 "child_id": 1172},
-            "role_id": 3
+            "role_id": PersonRole.GENERAL.value
         },
         {
             "id": 8,
@@ -81,7 +100,7 @@ def fixture_persons_1():
                 "child_id": 1181,
                 "child_id": 1182,
                 "child_id": 1183},
-            "role_id": 3
+            "role_id": PersonRole.GENERAL.value
         },
         {
             "id": 9,
@@ -91,7 +110,7 @@ def fixture_persons_1():
             "children": {
                 "child_id": 1191,
                 "child_id": 1192},
-            "role_id": 3
+            "role_id": PersonRole.GENERAL.value
         },
         {
             "id": 10,
@@ -103,9 +122,70 @@ def fixture_persons_1():
                 "child_id": 11102,
                 "child_id": 11103,
                 "child_id": 11104},
-            "role_id": 3
+            "role_id": PersonRole.GENERAL.value
         },
     ]
+
+def fixture_persons_2():
+    persons = fixture_persons_1()
+    persons.extend([{
+            "id": 11,
+            "name": "guardian-name11",
+            "phone": "000-000-0000",
+            "email": "11@dot.com.dummy",
+            "children": {
+              "child_id": 1111101,
+              "child_id": 1111102,
+              "child_id": 1111103,},
+            "role_id": PersonRole.LEADER.value
+        },
+        {
+            "id": 12,
+            "name": "guardian-name12",
+            "phone": "000-000-0000",
+            "email": "12@dot.com.dummy",
+            "children": {
+                "child_id": 1111201,},
+            "role_id": PersonRole.GENERAL.value
+        },
+        {
+            "id": 13,
+            "name": "guardian-name13",
+            "phone": "000-000-0000",
+            "email": "13@dot.com.dummy",
+            "children": {
+              "child_id": 1111301,
+              "child_id": 1111302,
+              "child_id": 1111303,
+              },
+            "role_id": PersonRole.COMMITTEE.value
+        },
+        {
+            "id": 14,
+            "name": "guardian-name14",
+            "phone": "000-000-0000",
+            "email": "14@dot.com.dummy",
+            "children": {
+                "child_id": 1111401,
+                "child_id": 1111402,
+                },
+            "role_id": PersonRole.GENERAL.value
+        },
+        {
+            "id": 15,
+            "name": "guardian-name15",
+            "phone": "000-000-0000",
+            "email": "15@dot.com.dummy",
+            "children": {
+                "child_id": 1111501,
+                "child_id": 1111502,
+                "child_id": 1111503,
+                "child_id": 1111504,
+                },
+            "role_id": PersonRole.GENERAL.value
+        },
+    ])
+    return persons
 
 def fixture_dates_0():
     return [
@@ -134,14 +214,12 @@ def test_1():
     #dates_input = Util.read_yaml_to_dict(base_url, "dates.yml")
     dates_input = fixture_dates_1()
     #guardian_input = Util.read_yaml_to_dict(base_url, "guardian.yml")
-    guardian_input = fixture_persons_1()
+    guardian_input = fixture_persons_2()
 
     num_dates = len(dates_input)
     num_guardians = len(guardian_input)
-    game = GjVolunteerAllocationGame.create_from_dictionaries(
-        dates_input, guardian_input)
-    solution = game.solve()
+    solution = GjVolunteerAllocationGame.create_from_dictionaries(
+        dates_input, guardian_input).solve()
     #for date, guardians in solution.items():
     #    print(f"{date}\n\tLeader: {guardians[WorkDate.ATTR_LIST_ASSIGNED_LEADER]}\n\t{guardians}")
     GjVolunteerAllocationGame.print_tabular_stdout(solution)
-

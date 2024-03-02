@@ -18,6 +18,7 @@ import datetime
 import urllib
 import yaml
 
+
 class Util:
     @staticmethod
     def read_yaml_to_dict(path_prefix, filename):

@@ -1,3 +1,19 @@
+#!/usr/bin/env python
+
+# Copyright 2024 Kinu Garage Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Tests for the Hospital-Resident algorithm."""
 
 import itertools 
@@ -5,9 +21,10 @@ from hypothesis import given
 import numpy as np
 import pytest
 
-from n_to_n_matching.matcher import GjVolunteerAllocationGame, WorkDate
+from n_to_n_matching.match_game import GjVolunteerAllocationGame
 from n_to_n_matching.util import Util
 from n_to_n_matching.test_main import fixture_dates_0, fixture_dates_1, fixture_persons_1
+from n_to_n_matching.workdate_player import WorkDate
 
 @pytest.fixture
 def input_guardians_yaml():
