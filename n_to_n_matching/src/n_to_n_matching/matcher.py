@@ -89,13 +89,16 @@ class GjVolunteerMatching(ManyToManyMatching):
         self._dataframe.append(new_match)
 
 
-class WorkDate():
+class WorkDate(Player):
     # Attiribute in text (e.g. .yaml) input file 
     ATTR_DATE = "date"
-    ATTR_NUM_LEADER = "num_leader"
-    ATTR_NUM_COMMITTE = "num_commitee"
-    ATTR_NUM_GENERAL = "num_general"
+    ATTR_NUM_LEADER = "req_num_leader"
+    ATTR_NUM_COMMITTEE = "req_num_commitee"
+    ATTR_NUM_GENERAL = "req_num_general"
     ATTR_SCHOOL_OFF = "school_off"
+    ATTR_LIST_ASSIGNED_LEADER = "assignees_leader"
+    ATTR_LIST_ASSIGNED_COMMITTEE = "assignees_committee"
+    ATTR_LIST_ASSIGNED_GENERAL = "assignees_general"
 
     def __init__(self,
                  datestr,
@@ -111,7 +114,8 @@ class WorkDate():
         @type assignees: [GuardianPlayer]
         @param assignee_ids_commitee: Can be empty when a class instantiates.
         """
-        self.set_date(datestr)
+        super().__init__(datestr)  # For the rest of __init__, assigning `name` can be skipped because it's done in super class.
+        ##self.set_date(datestr)
         self._school_off = school_off
         self._req_num_leader = req_num_leader
         self._required_committee = req_num_committee
@@ -129,14 +133,14 @@ class WorkDate():
         year = int(ymd[0])
         month = int(ymd[1])
         day = int(ymd[2])
-        self._date = date(year, month, day)
+        self.name = date(year, month, day)
 
     @property
     def date(self):
         """
         @rtype datetime.date
         """
-        return self._date
+        return self.name
 
     @date.setter
     def date(self, val):
@@ -177,6 +181,10 @@ class WorkDate():
     @property
     def req_num_leader(self):
         return self._req_num_leader
+
+    @property
+    def school_off(self):
+        return self._school_off
 
 
 class PersonRole(Enum):
@@ -248,8 +256,12 @@ class GjVolunteerAllocationGame(BaseGame):
         self._logger = self._set_logger(logger_obj)
 
     @classmethod
-    def print_tabular(cls, solutions):
-        raise NotImplementedError()
+    def print_tabular_stdout(cls, solution):
+        """
+        @param solution: Proprietarily formatted dict. TBD the example
+        """
+        for date, date_detail in solution.items():
+            print(f"{date}\n\tLeader: {date_detail[WorkDate.ATTR_LIST_ASSIGNED_LEADER]}\n\tCommitee assignee: {date_detail[WorkDate.ATTR_LIST_ASSIGNED_COMMITTEE]}\n\tGeneral assignee: {date_detail[WorkDate.ATTR_LIST_ASSIGNED_GENERAL]}")
 
     def _set_logger(self, logger_obj):
         if logger_obj:
@@ -611,15 +623,51 @@ class GjVolunteerAllocationGame(BaseGame):
             #dates_need_attention.remove(date)
             self._log_date_content(date, msg_prefix="AFTER assigning a day:")
             self._logger.info("AFTER assigning a day: All dates_need_attention={}\n\tdates_lgtm={}".format(dates_need_attention, dates_lgtm))
-        return dates_lgtm        
+        return dates_lgtm
+    
+    def dates_list_to_dict(self, list_dates):
+        """
+        @type list_dates: [WorkDate]
+        @rtype: dict
+        @return: Example format:
+           {
+             "str": {
+                WorkDate.ATTR_DATE: str
+                WorkDate.ATTR_LIST_ASSIGNED_LEADER: [PersonPlayer],
+                WorkDate.ATTR_LIST_ASSIGNED_COMMITTEE: [PersonPlayer],
+                WorkDate.ATTR_LIST_ASSIGNED_GENERAL: [PersonPlayer],
+                WorkDate.ATTR_NUM_LEADER: int,
+                WorkDate.ATTR_NUM_COMMITTEE: int,
+                WorkDate.ATTR_NUM_GENERAL: int,
+                WorkDate.ATTR_SCHOOL_OFF: bool
+              }
+           }
+        """
+        dict_dates = {}
+        if not list_dates:
+            raise ValueError("Arg `list_dates` must not be empty")
+        for date in list_dates:
+            date_dict = {
+                WorkDate.ATTR_DATE: date.name,  # `WorkDate(name)` represents the date in `str` format.
+                WorkDate.ATTR_LIST_ASSIGNED_LEADER: date.assignees_leader,
+                WorkDate.ATTR_LIST_ASSIGNED_COMMITTEE: date.assignees_committee,
+                WorkDate.ATTR_LIST_ASSIGNED_GENERAL: date.assignees_noncommittee,
+                WorkDate.ATTR_NUM_LEADER: date.req_num_leader,
+                WorkDate.ATTR_NUM_COMMITTEE: date.req_num_assignee_committee,
+                WorkDate.ATTR_NUM_GENERAL: date.req_num_assignee_noncommittee,
+                WorkDate.ATTR_SCHOOL_OFF: date.school_off
+            }
+            dict_dates[date.name] = date_dict
+        return dict_dates
 
     def solve(self, optimal=""):
         """
         @description: 
         @return matching.BaseMatching
         """
+        dates_list = self.match(self._dates, self._workers, optimal)
         self._matching = GjVolunteerMatching(
-            self.match(self._dates, self._workers, optimal)
+            self.dates_list_to_dict(dates_list)            
         )
         return self._matching
 
@@ -644,7 +692,7 @@ class GjVolunteerAllocationGame(BaseGame):
         _dates = [WorkDate(datestr=d[WorkDate.ATTR_DATE],
                            school_off=d.get(WorkDate.ATTR_SCHOOL_OFF, False),
                            req_num_leader=d.get(WorkDate.ATTR_NUM_LEADER, 1),
-                           req_num_committee=d.get(WorkDate.ATTR_NUM_COMMITTE, 2),
+                           req_num_committee=d.get(WorkDate.ATTR_NUM_COMMITTEE, 2),
                            req_num_noncommittee=d.get(WorkDate.ATTR_NUM_GENERAL, 3)
                            ) for d in dates_prefs]            
         return _dates

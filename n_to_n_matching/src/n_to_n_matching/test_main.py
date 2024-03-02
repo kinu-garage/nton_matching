@@ -1,4 +1,4 @@
-from n_to_n_matching.matcher import GjVolunteerAllocationGame
+from n_to_n_matching.matcher import GjVolunteerAllocationGame, WorkDate
 
 def fixture_persons_1():
     return [
@@ -107,18 +107,28 @@ def fixture_persons_1():
         },
     ]
 
-def fixture_dates_1():
+def fixture_dates_0():
     return [
-        { "date": "2024-04-01", },
+        { WorkDate.ATTR_DATE: "2024-04-01", },
         {
-            "date": "2024-04-08",
-            "num_leader": 1,
-            "num_commitee": 3,
-            "num_general": 4,
+            WorkDate.ATTR_DATE: "2024-04-08",
+            WorkDate.ATTR_NUM_LEADER: 1,
+            WorkDate.ATTR_NUM_COMMITTEE: 3,
+            WorkDate.ATTR_NUM_GENERAL: 4,
         },
-        { "date": "2024-04-15", },
-        { "date": "2024-04-22", },
+        { WorkDate.ATTR_DATE: "2024-04-15", },
+        { WorkDate.ATTR_DATE: "2024-04-22", },
     ]
+
+def fixture_dates_1():
+    dates = fixture_dates_0()
+    dates.extend([
+        { WorkDate.ATTR_DATE: "2024-04-29", },
+        { WorkDate.ATTR_DATE: "2024-05-06", },
+        { WorkDate.ATTR_DATE: "2024-05-13", },
+        { WorkDate.ATTR_DATE: "2024-05-20", },
+    ])
+    return dates
 
 def test_1():
     #dates_input = Util.read_yaml_to_dict(base_url, "dates.yml")
@@ -131,7 +141,7 @@ def test_1():
     game = GjVolunteerAllocationGame.create_from_dictionaries(
         dates_input, guardian_input)
     solution = game.solve()
-    for date, guardians in solution.items():
-        print(f"{date} ({date.capacity}): {guardians}")
-    GjVolunteerAllocationGame.print_tabular(solution)
+    #for date, guardians in solution.items():
+    #    print(f"{date}\n\tLeader: {guardians[WorkDate.ATTR_LIST_ASSIGNED_LEADER]}\n\t{guardians}")
+    GjVolunteerAllocationGame.print_tabular_stdout(solution)
 

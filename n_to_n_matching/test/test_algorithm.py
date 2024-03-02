@@ -5,9 +5,9 @@ from hypothesis import given
 import numpy as np
 import pytest
 
-from n_to_n_matching.matcher import GjVolunteerAllocationGame
+from n_to_n_matching.matcher import GjVolunteerAllocationGame, WorkDate
 from n_to_n_matching.util import Util
-from n_to_n_matching.test_main import fixture_dates_1, fixture_persons_1
+from n_to_n_matching.test_main import fixture_dates_0, fixture_dates_1, fixture_persons_1
 
 @pytest.fixture
 def input_guardians_yaml():
@@ -24,7 +24,7 @@ def input_dates_src():
       [{ "id", "name", "phone", "email",
          "children": {"child_id"}, "role_id" }]
     """
-    return fixture_dates_1()
+    return fixture_dates_0()
 
 @pytest.fixture
 def input_dates_yaml():
@@ -44,6 +44,10 @@ def input_persons_obj(input_guardians_src):
 
 @pytest.fixture
 def game_obj(input_dates_src, input_guardians_src):
+    """
+    @summary As for now, the game obj returned by this fixture method is embeds specific input state,
+        which is defined by the another fixture input `input_dates_src, input_guardians_src`.
+    """
     return GjVolunteerAllocationGame.create_from_dictionaries(
         input_dates_src, input_guardians_src)
 
@@ -150,4 +154,12 @@ def test_get_assigned_dates(input_persons_obj, input_dates_obj, game_obj):
     assert 1 == len(date.assignees_leader)
     # Expect len(assigned date) == 1.
     assert 1 == game_obj.get_assigned_dates(person.id, input_dates_obj)
-    
+
+def test_dates_list_to_dict(input_dates_obj, game_obj):
+    dict_dates = game_obj.dates_list_to_dict(input_dates_obj)
+    for date_obj in input_dates_obj:
+        date_entry = dict_dates[date_obj.date]
+        # Format of each `date_entry` instance must be the one defined in `dates_list_to_dict`. See its docstring.
+        assert date_entry  # Corresponding instance exists.
+        assert isinstance(date_entry[WorkDate.ATTR_SCHOOL_OFF], bool)
+        
