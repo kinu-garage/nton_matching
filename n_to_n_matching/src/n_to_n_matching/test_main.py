@@ -16,7 +16,7 @@
 
 from n_to_n_matching.match_game import GjVolunteerAllocationGame
 from n_to_n_matching.person_player import PersonRole
-from n_to_n_matching.workdate_player import WorkDate
+from n_to_n_matching.workdate_player import DateRequirement, WorkDate
 
 
 def fixture_persons_1():
@@ -188,21 +188,27 @@ def fixture_persons_2():
     return persons
 
 def fixture_dates_0():
-    return [
-        { WorkDate.ATTR_DATE: "2024-04-01", },
-        {
-            WorkDate.ATTR_DATE: "2024-04-08",
-            WorkDate.ATTR_NUM_LEADER: 1,
-            WorkDate.ATTR_NUM_COMMITTEE: 3,
-            WorkDate.ATTR_NUM_GENERAL: 4,
+    return {
+        DateRequirement.ATTR_SECTION: {        
+            WorkDate.REQ_INTERVAL_ASSIGNEDDATES_LEADER: 3,
+            WorkDate.REQ_INTERVAL_ASSIGNEDDATES_COMMITTE: 6,
+            WorkDate.REQ_INTERVAL_ASSIGNEDDATES_GENERAL: 6,
         },
-        { WorkDate.ATTR_DATE: "2024-04-15", },
-        { WorkDate.ATTR_DATE: "2024-04-22", },
-    ]
+        WorkDate.ATTR_SECTION: [
+            { WorkDate.ATTR_DATE: "2024-04-01", },
+            {
+                WorkDate.ATTR_DATE: "2024-04-08",
+                WorkDate.ATTR_NUM_LEADER: 1,
+                WorkDate.ATTR_NUM_COMMITTEE: 3,
+                WorkDate.ATTR_NUM_GENERAL: 4,
+            },
+            { WorkDate.ATTR_DATE: "2024-04-15", },
+            { WorkDate.ATTR_DATE: "2024-04-22", },
+        ]}
 
 def fixture_dates_1():
     dates = fixture_dates_0()
-    dates.extend([
+    dates[WorkDate.ATTR_SECTION].extend([
         { WorkDate.ATTR_DATE: "2024-04-29", },
         { WorkDate.ATTR_DATE: "2024-05-06", },
         { WorkDate.ATTR_DATE: "2024-05-13", },
@@ -216,8 +222,6 @@ def test_1():
     #guardian_input = Util.read_yaml_to_dict(base_url, "guardian.yml")
     guardian_input = fixture_persons_2()
 
-    num_dates = len(dates_input)
-    num_guardians = len(guardian_input)
     solution = GjVolunteerAllocationGame.create_from_dictionaries(
         dates_input, guardian_input).solve()
     #for date, guardians in solution.items():

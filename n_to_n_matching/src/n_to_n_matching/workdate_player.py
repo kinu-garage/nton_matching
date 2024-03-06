@@ -23,6 +23,7 @@ from n_to_n_matching.util import Util
 
 class WorkDate(Player):
     # Attiribute in text (e.g. .yaml) input file 
+    ATTR_SECTION = "Dates"  # Key in the input file.
     ATTR_DATE = "date"
     ATTR_NUM_LEADER = "req_num_leader"
     ATTR_NUM_COMMITTEE = "req_num_commitee"
@@ -32,6 +33,10 @@ class WorkDate(Player):
     ATTR_LIST_ASSIGNED_COMMITTEE = "assignees_committee"
     ATTR_LIST_ASSIGNED_GENERAL = "assignees_general"
 
+    REQ_INTERVAL_ASSIGNEDDATES_LEADER = "req_interval_assigneddates_leader"
+    REQ_INTERVAL_ASSIGNEDDATES_COMMITTE = "req_interval_assigneddates_commitee"
+    REQ_INTERVAL_ASSIGNEDDATES_GENERAL = "req_interval_assigneddates_general"
+    
     def __init__(self,
                  datestr,
                  school_off=False,
@@ -46,8 +51,12 @@ class WorkDate(Player):
         @type assignees: [GuardianPlayer]
         @param assignee_ids_commitee: Can be empty when a class instantiates.
         """
-        super().__init__(datestr)  # For the rest of __init__, assigning `name` can be skipped because it's done in super class.
-        ##self.set_date(datestr)
+        super().__init__(datestr)
+        # type: datetime.date
+        # For date information, this `_date_obj` instance (accessible via `date()`) should be prioritized, instead of `super.name`.
+        self._date_obj = None
+        self._date = self.name
+
         self._school_off = school_off
         self._req_num_leader = req_num_leader
         self._required_committee = req_num_committee
@@ -60,22 +69,29 @@ class WorkDate(Player):
         self._assignees_noncommittee = assignee_noncommitee if assignee_noncommitee else []
 
     def set_date(self, datestr):
+        """
+        @param datestr: Format of "yyyy-mm-dd" is required.
+        @raise ValueError: When `datestr` format is not appropriate.
+        """
         Util.validate_date_str(datestr)
         ymd = datestr.split("-")
         year = int(ymd[0])
         month = int(ymd[1])
         day = int(ymd[2])
-        self.name = date(year, month, day)
+        self._date_obj = date(year, month, day)
 
     @property
     def date(self):
         """
         @rtype datetime.date
         """
-        return self.name
+        return self._date_obj
 
     @date.setter
-    def date(self, val):
+    def _date(self, val):
+        """
+        @
+        """
         self.set_date(val)
 
     @property
@@ -117,3 +133,41 @@ class WorkDate(Player):
     @property
     def school_off(self):
         return self._school_off
+
+
+class DateRequirement():
+    _MSG_SETTER_NOTALlOWED = "The value is only allowed to be set upon initializing the instance."
+    ATTR_SECTION = "Requirement"
+
+    def __init__(self,
+                 interval_assigneddates_leader=3,
+                 interval_assigneddates_commitee=4,
+                 interval_assigneddates_general=5):
+        self._interval_assigneddates_leader = interval_assigneddates_leader
+        self._interval_assigneddates_commitee = interval_assigneddates_commitee
+        self._interval_assigneddates_general = interval_assigneddates_general
+
+    @property
+    def interval_assigneddates_leader(self):
+        # TODO Haven't figured this out, but for some reason these getter methods were returning str.
+        return int(self._interval_assigneddates_leader)
+
+    @interval_assigneddates_leader.setter
+    def interval_assigneddates_leader(self, val):
+        raise ValueError(self._MSG_SETTER_NOTALlOWED)
+
+    @property
+    def interval_assigneddates_commitee(self):
+        return int(self._interval_assigneddates_commitee)
+
+    @interval_assigneddates_commitee.setter
+    def interval_assigneddates_commitee(self, val):
+        raise ValueError(self._MSG_SETTER_NOTALlOWED)
+
+    @property
+    def interval_assigneddates_general(self):
+        return int(self._interval_assigneddates_general)
+
+    @interval_assigneddates_general.setter
+    def interval_assigneddates_general(self, val):
+        raise ValueError(self._MSG_SETTER_NOTALlOWED)

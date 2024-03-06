@@ -54,6 +54,7 @@ class PersonPlayer(Player):
        self._phone_num = phone_num
        self._role_id = role_id
        self._children_ids = children_ids
+       self._last_assigned_date = None
 
     @property
     def id(self):
@@ -70,6 +71,23 @@ class PersonPlayer(Player):
     @role_id.setter
     def role_id(self, val):
         raise AttributeError("`role_id` should only be settable as an initial input and cannot be overwritten.")
+
+    @property
+    def last_assigned_date(self):
+        """
+        @rtype: datetime.date
+        @return: None if not set.
+        """
+        return self._last_assigned_date
+
+    @last_assigned_date.setter
+    def last_assigned_date(self, d):
+        """
+        @type d: datetime.date
+        """
+        if not isinstance(d, date):
+            raise TypeError(f"Input type must be 'datetime.date' but received '{type(d)}'")
+        self._last_assigned_date = d
 
 
 class PersonBank():

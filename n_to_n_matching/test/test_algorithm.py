@@ -22,6 +22,8 @@ import numpy as np
 import pytest
 
 from n_to_n_matching.match_game import GjVolunteerAllocationGame
+from n_to_n_matching.gj_rsc_matching import GjVolunteerMatching
+from n_to_n_matching.gj_util import GjUtil
 from n_to_n_matching.util import Util
 from n_to_n_matching.test_main import fixture_dates_0, fixture_dates_1, fixture_persons_1
 from n_to_n_matching.workdate_player import WorkDate
@@ -75,8 +77,9 @@ def test_create_from_dict_dates(input_dates_src, input_dates_obj):
     # Input and output same length
     assert len(input_dates_obj) == len(input_dates_src)
     obj_ids = set()
+    dates_list, reqs = input_dates_obj
     # Assigne field in the output instances is empty
-    for date in input_dates_obj:
+    for date in dates_list:
         _assert_assignees(date.assignees_leader)
         _assert_assignees(date.assignees_committee)
         _assert_assignees(date.assignees_noncommittee)
@@ -99,7 +102,7 @@ def test_total_slots_required(game_obj):
     assert needed_general == _EXPECTED_NONCOMMITTEE
 
 def test_total_persons_available(game_obj):
-    avaialable_leader, avaialable_committee, avaialable_general = game_obj.total_persons_available(game_obj._workers)
+    avaialable_leader, avaialable_committee, avaialable_general = game_obj.total_persons_available(game_obj._person_bank)
     _EXPECTED_LEADER = 2
     _EXPECTED_COMMITTEE = 3
     _EXPECTED_NONCOMMITTEE = 5
@@ -112,7 +115,8 @@ def _verify_allowance(_game_obj, allowance_obj_per_role, expected_max, expected_
     assert allowance_obj_per_role[_game_obj.ATTR_UNLUCKY_PERSON_NUMS] == expected_unluck
 
 def test_max_allowed_days_per_person(input_dates_obj, game_obj):
-    max_allowance = game_obj.max_allowed_days_per_person(input_dates_obj, game_obj._workers)
+    dates_list, reqs = input_dates_obj
+    max_allowance = game_obj.max_allowed_days_per_person(dates_list, game_obj._person_bank)
     _EXPECTED_LEADER_MAX = 2
     _EXPECTED_LEADER_UNLUCKY = 0
     _EXPECTED_COMMITTEE_MAX = 3
@@ -163,20 +167,21 @@ def wip_test_volunteer_april(input_guardians, input_dates):
         assert guardian.dates
 
 def test_get_assigned_dates(input_persons_obj, input_dates_obj, game_obj):
-    date = input_dates_obj[0]
+    dates_list, reqs = input_dates_obj
+    date = dates_list[0]
     person = input_persons_obj[0]
     # Assign ther `person` to the `date`
-    game_obj.assign_day(date, person)
+    game_obj.assign_role(date, person)
     # The person at 0th element in `input_persons_obj` is a leader.
     assert 1 == len(date.assignees_leader)
     # Expect len(assigned date) == 1.
-    assert 1 == game_obj.get_assigned_dates(person.id, input_dates_obj)
+    assert 1 == GjUtil.get_assigned_dates(person.id, dates_list)[0]
 
-def test_dates_list_to_dict(input_dates_obj, game_obj):
-    dict_dates = game_obj.dates_list_to_dict(input_dates_obj)
-    for date_obj in input_dates_obj:
-        date_entry = dict_dates[date_obj.date]
+def test_dates_list_to_dict(input_dates_obj):
+    dates_list, reqs = input_dates_obj
+    dates_dict = GjVolunteerMatching.dates_list_to_dict(dates_list)
+    for date_str, sub_dict in dates_dict.items():
         # Format of each `date_entry` instance must be the one defined in `dates_list_to_dict`. See its docstring.
-        assert date_entry  # Corresponding instance exists.
-        assert isinstance(date_entry[WorkDate.ATTR_SCHOOL_OFF], bool)
+        assert sub_dict
+        assert isinstance(sub_dict[WorkDate.ATTR_SCHOOL_OFF], bool)
         

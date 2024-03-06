@@ -15,7 +15,9 @@
 # limitations under the License.
 
 import copy
+from datetime import date
 import logging
+import random
 
 from matching import BaseGame
 from matching.exceptions import PlayerExcludedWarning
@@ -23,7 +25,7 @@ from matching.exceptions import PlayerExcludedWarning
 from n_to_n_matching.gj_rsc_matching import GjVolunteerMatching
 from n_to_n_matching.person_player import PersonBank, PersonPlayer, PersonRole
 from n_to_n_matching.gj_util import GjUtil
-from n_to_n_matching.workdate_player import WorkDate
+from n_to_n_matching.workdate_player import DateRequirement, WorkDate
 
 
 class GjVolunteerAllocationGame(BaseGame):
@@ -32,14 +34,16 @@ class GjVolunteerAllocationGame(BaseGame):
     ATTR_MAX_OCCURRENCE_PER_ROLE = "max_occurence"
     ATTR_UNLUCKY_PERSON_NUMS = "num_unlucky_person"
 
-    def __init__(self, dates, persons, clean=False, logger_obj=None):
+    def __init__(self, dates, persons, requirements=None, clean=False, logger_obj=None):
         """
         @type persons: [PersonPlayer]
         @param persons: Will be converted to `PersonBank` class instance.
+        @type requirements: DateRequirement
         """
         super().__init__(clean)
         self._dates = dates
         self._person_bank = PersonBank(persons)
+        self._reqs = requirements
         self._check_inputs()
         self._logger = self._set_logger(logger_obj)
 
@@ -194,6 +198,7 @@ class GjVolunteerAllocationGame(BaseGame):
         @summary:  Returning 2 sets of info for 3 kids of roles (leader, committee, generals):
             - max_*: Maximum number of times each person should be assigned to the correspondent role in the given period.
             - unlucky_*: Number of persons who need to take on the correspondent role once more than `max_*` number.
+        @type dates: [n_to_n_matching.WorkDate]
         @type workers: `PersonBank`
         @return: Dictionary structure should look like this:
             {
@@ -285,28 +290,48 @@ class GjVolunteerAllocationGame(BaseGame):
         #    raise ValueError("All given persons are already assigned to the max number of dates")
         return free_workers, fullybooked_workers, overlybooked_workers
 
-    def assign_day(self, date, person):
+    def assign_role(self, date_wd, person, requirements=None):
         """
+        @type date_wd: WorkDate
         @todo Rename appropriately esp. there are other methods that have similar names.
+        @raise ValueError:
+          - Case-a. When the requirement is not met (e.g. too soon for `person` to be assigned since her/his last assignment).
+          - Case-b. (TODO needs figured out this case, which is also clarified in the inline comment section of the corresponding line.)
         """
-        if (not isinstance(person, PersonPlayer)) or (not isinstance(date, WorkDate)):
-            raise TypeError("One of the args' type is incompatible. person: '{}', date: '{}'".format(
-                type(person), type(date)))
-        _enough_leaders, _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date)
+        if not requirements:
+            self._logger.warn("Requirement was not passed. Using default.")
+            requirements = DateRequirement()        
+        if (not isinstance(person, PersonPlayer)) or (not isinstance(date_wd, WorkDate)):
+            raise TypeError(f"One of the args' type is incompatible. person: '{type(person)}', date_wd: '{type(WorkDate)}'")
+        # If the previous assigned date is closer than what's in the requirement, this person cannot be assigned
+        req_space_days = -1
+        if (person.role_id == PersonRole.LEADER.value):
+            req_space_days = requirements.interval_assigneddates_leader
+        elif (person.role_id == PersonRole.COMMITTEE.value):
+            req_space_days = requirements.interval_assigneddates_commitee
+        elif (person.role_id == PersonRole.GENERAL.value):
+            req_space_days = requirements.interval_assigneddates_general
+        # If `person.last_assigned_date` is None, it's set to today (so the `days_interval` will be 0 days).
+        _last_assigned_date = person.last_assigned_date if person.last_assigned_date else date.today() 
+        days_interval = (date_wd.date.today() - _last_assigned_date).days 
+        if req_space_days < days_interval:
+            raise ValueError(f"Can't assign this person (ID '{person.role_id}') on {date_wd} as the {req_space_days} days needs since the last assignment i.e. {person.last_assigned_date}.")
+
+        _enough_leaders, _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date_wd)
         if all([_enough_leaders, _enough_committee, _enough_noncommittee]):
             return  # TODO Think of better return value to communicate the result
         elif (not _enough_leaders) and (person.role_id == PersonRole.LEADER.value):
-            date.assignees_leader.append(person)
+            date_wd.assignees_leader.append(person)
         elif (not _enough_committee) and (person.role_id == PersonRole.COMMITTEE.value):
-            date.assignees_committee.append(person)
+            date_wd.assignees_committee.append(person)
         elif (not _enough_noncommittee) and (person.role_id == PersonRole.GENERAL.value):
-            date.assignees_noncommittee.append(person)
+            date_wd.assignees_noncommittee.append(person)
         else:
             raise ValueError("TBD hmmm not sure what this means, needs looked into. _enough_leaders: {}, _enough_committee: {}, _enough_noncommittee: {}".format(
                 _enough_leaders, _enough_committee, _enough_noncommittee))
-        self._log_dates("116 Memory addr of date.assignees_leader: {}".format(id(date.assignees_leader)))
+        self._log_dates("116 Memory addr of date.assignees_leader: {}".format(id(date_wd.assignees_leader)))
 
-    def _assign_day(self, date, person_bank, overbook=False):
+    def _assign_day(self, date, person_bank, requirements, overbook=False):
         """
         @type person_bank: [PersonBank]
         @param persons: Pool of persons to be assigned if condition meets.
@@ -319,15 +344,17 @@ class GjVolunteerAllocationGame(BaseGame):
         if overbook:
             self._logger.warn(f"Overbooking is triggered.:=^20")
             _persons = copy.deepcopy(_fullybooked_ppl)
-        for person in _persons:
+        # Randomizing the input list of available persons, to help distributing the assigned dates of each person.
+        _persons_randomized = sorted(_persons, key=lambda x: random.random())
+        for person in _persons_randomized:
             try:
-                self.assign_day(date, person)
+                self.assign_role(date, person, requirements)
             except ValueError as e:
                 self._logger.warning(str(e))
                 continue
         return date
 
-    def assign_person(self, date, person_bank, overbook=True):
+    def assign_person(self, date, person_bank, requirements=None, overbook=True):
         """
         @type free_workers: [PersonPlayer]
         @type booked_persons: [PersonPlayer]
@@ -340,31 +367,40 @@ class GjVolunteerAllocationGame(BaseGame):
 
           Also, `date` is NOT returned explicitly, but potentially its `assignee_ids_{commitee, noncommitee}` field is updated.
         """
+        if not requirements:
+            self._logger.warn("Requirement was not passed. Using default.")
+            requirements = DateRequirement()
+
         # Fill in the assignee if a `date` doesn't have enough assignees.
         is_enough_commitee, is_enough_noncommitee = False, False
 
         # Assign a personnel taken from `free_workers`. Once done, update the `free_workers`.
         #while (not is_enough_commitee) or (not is_enough_noncommitee):
-        date = self._assign_day(date, person_bank)
+        date = self._assign_day(date, person_bank, requirements)
 
         # Once evaluated all `free_workers` and yet the date is not filled with needed number of persons,
         # use `ATTR_UNLUCKY_PERSON_NUMS` persons.
         _enough_leaders, _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date)
         if not all([_enough_leaders, _enough_committee, _enough_noncommittee]):
-            date = self._assign_day(date, person_bank, overbook=True)
+            date = self._assign_day(date, person_bank, requirements, overbook=True)
 
     def _log_date_content(self, date, msg_prefix=""):
         self._logger.debug("{} Date={} assignees stored. Leader: {}, Committee: {}, Non-commitee: {}".format(
             msg_prefix, date.date, date.assignees_leader, date.assignees_committee, date.assignees_noncommittee))
 
-    def match(self, dates, person_bank, optimal=""):
+    def match(self, dates, person_bank, reqs=None, optimal=""):
         """
         @type dates: [n_to_n_matching.WorkDate]
         @type person_bank: n_to_n_matching.PersonBank
+        @type reqs: DateRequirement
         @param optimal: Unused for now, kept just to make it consistent with `matching` pkg.
         @return 
         @raise ValueError: If the given `dates` already filled with assignees.
         """
+        if not reqs:
+            self._logger.warn("Requirement was not passed. Using default.")
+            reqs = DateRequirement()
+
         dates_need_attention = []
 
         # Figure out how many dates each worker can be assigned to for the given `dates`.
@@ -386,7 +422,7 @@ class GjVolunteerAllocationGame(BaseGame):
         # Assign personnels per date
         for date in dates_need_attention:
             self._log_date_content(date, msg_prefix="BEFORE assigning:")
-            self.assign_person(date, person_bank)
+            self.assign_person(date, person_bank, reqs)
             dates_lgtm.append(date)
             #dates_need_attention.remove(date)
             self._log_date_content(date, msg_prefix="AFTER assigning a day:")
@@ -398,7 +434,7 @@ class GjVolunteerAllocationGame(BaseGame):
         @description: 
         @return `GjVolunteerMatching`
         """
-        dates_list = self.match(self._dates, self._person_bank, optimal)
+        dates_list = self.match(self._dates, self._person_bank, self._reqs, optimal)
         self._matching = GjVolunteerMatching(
             dates_list,
             self._person_bank,
@@ -423,14 +459,26 @@ class GjVolunteerAllocationGame(BaseGame):
                 { "date": "2024-04-20", },
                 { "date": "2024-04-27", }
             ]
+        @rtype [WorkDate], DateRequirement
+        @raise ValueError
         """
+        if WorkDate.ATTR_SECTION not in dates_prefs:
+            raise ValueError(f"A required section '{WorkDate.ATTR_SECTION}' in the input file is missing.")
+
+        if DateRequirement.ATTR_SECTION in dates_prefs:
+            requirement = DateRequirement(
+                dates_prefs.get(WorkDate.REQ_INTERVAL_ASSIGNEDDATES_LEADER, "NOT_FOUND"),
+                dates_prefs.get(WorkDate.REQ_INTERVAL_ASSIGNEDDATES_COMMITTE, "NOT_FOUND"),
+                dates_prefs.get(WorkDate.REQ_INTERVAL_ASSIGNEDDATES_GENERAL, "NOT_FOUND"),
+            )
+
         _dates = [WorkDate(datestr=d[WorkDate.ATTR_DATE],
                            school_off=d.get(WorkDate.ATTR_SCHOOL_OFF, False),
                            req_num_leader=d.get(WorkDate.ATTR_NUM_LEADER, 1),
                            req_num_committee=d.get(WorkDate.ATTR_NUM_COMMITTEE, 2),
                            req_num_noncommittee=d.get(WorkDate.ATTR_NUM_GENERAL, 3)
-                           ) for d in dates_prefs]            
-        return _dates
+                           ) for d in dates_prefs[WorkDate.ATTR_SECTION]]            
+        return _dates, requirement
 
     @classmethod
     def create_from_dict_persons(cls, person_prefs, clean=False):
@@ -464,9 +512,9 @@ class GjVolunteerAllocationGame(BaseGame):
         @param personnel_prefs: List particularly made by .yaml input.
         @rtype: matching.BaseGame
         """
-        _dates = GjVolunteerAllocationGame.create_from_dict_dates(dates_prefs, clean=clean)
+        _dates, _reqs = GjVolunteerAllocationGame.create_from_dict_dates(dates_prefs, clean=clean)
         _persons = GjVolunteerAllocationGame.create_from_dict_persons(personnel_prefs, clean=clean)
-        game = cls(_dates, _persons, clean)
+        game = cls(_dates, _persons, _reqs, clean)
         return game
 
     def check_stability(self):

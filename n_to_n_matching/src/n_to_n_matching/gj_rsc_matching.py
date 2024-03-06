@@ -89,14 +89,14 @@ class GjVolunteerMatching(ManyToManyMatching):
         @return: Example format:
            {
              "str": {
-                WorkDate.ATTR_DATE: str
+                WorkDate.ATTR_DATE: str,
                 WorkDate.ATTR_LIST_ASSIGNED_LEADER: [PersonPlayer],
                 WorkDate.ATTR_LIST_ASSIGNED_COMMITTEE: [PersonPlayer],
                 WorkDate.ATTR_LIST_ASSIGNED_GENERAL: [PersonPlayer],
                 WorkDate.ATTR_NUM_LEADER: int,
                 WorkDate.ATTR_NUM_COMMITTEE: int,
                 WorkDate.ATTR_NUM_GENERAL: int,
-                WorkDate.ATTR_SCHOOL_OFF: bool
+                WorkDate.ATTR_SCHOOL_OFF: bool,
               }
            }
         """
