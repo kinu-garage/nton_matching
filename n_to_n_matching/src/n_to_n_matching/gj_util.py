@@ -59,4 +59,4 @@ class GjUtil:
         assign_count = assigned_leader + assigned_committee + assigned_noncommittee
         logger.debug("person_id: {}, assign_count: {}, assigned_leader: {} assigned_committee: {} assigned_noncommittee: {}".format(
             person_id, assign_count, assigned_leader, assigned_committee, assigned_noncommittee))
-        return assign_count, 
+        return assign_count, assigned_leader, assigned_committee, assigned_noncommittee

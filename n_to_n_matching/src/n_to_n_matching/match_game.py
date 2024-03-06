@@ -311,11 +311,13 @@ class GjVolunteerAllocationGame(BaseGame):
             req_space_days = requirements.interval_assigneddates_commitee
         elif (person.role_id == PersonRole.GENERAL.value):
             req_space_days = requirements.interval_assigneddates_general
-        # If `person.last_assigned_date` is None, it's set to today (so the `days_interval` will be 0 days).
-        _last_assigned_date = person.last_assigned_date if person.last_assigned_date else date.today() 
-        days_interval = (date_wd.date.today() - _last_assigned_date).days 
-        if req_space_days < days_interval:
-            raise ValueError(f"Can't assign this person (ID '{person.role_id}') on {date_wd} as the {req_space_days} days needs since the last assignment i.e. {person.last_assigned_date}.")
+
+        # If `person.last_assigned_date` is None, it's set to the same date as `date_wd` (so the `days_interval` will be 0 days).
+        _last_assigned_date = person.last_assigned_date if person.last_assigned_date else date_wd.date
+        days_interval = (date_wd.date - _last_assigned_date).days 
+        self._logger.warning(f"{person.last_assigned_date=}, {date_wd.date=}, {req_space_days=}, {days_interval=}")
+        if req_space_days <= days_interval:
+            raise ValueError(f"Can't assign this person (ID={person.role_id}) on {date_wd} as there must be {req_space_days} days since the last assignment i.e. {_last_assigned_date}.")
 
         _enough_leaders, _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date_wd)
         if all([_enough_leaders, _enough_committee, _enough_noncommittee]):
@@ -329,6 +331,8 @@ class GjVolunteerAllocationGame(BaseGame):
         else:
             raise ValueError("TBD hmmm not sure what this means, needs looked into. _enough_leaders: {}, _enough_committee: {}, _enough_noncommittee: {}".format(
                 _enough_leaders, _enough_committee, _enough_noncommittee))
+
+        person.last_assigned_date = date_wd.date
         self._log_dates("116 Memory addr of date.assignees_leader: {}".format(id(date_wd.assignees_leader)))
 
     def _assign_day(self, date, person_bank, requirements, overbook=False):
@@ -342,7 +346,7 @@ class GjVolunteerAllocationGame(BaseGame):
         _free_ppl, _fullybooked_ppl, overbooked_ppl = self.find_free_workers(person_bank)        
         _persons = _free_ppl
         if overbook:
-            self._logger.warn(f"Overbooking is triggered.:=^20")
+            self._logger.warning(f"Overbooking is triggered.:=^20")
             _persons = copy.deepcopy(_fullybooked_ppl)
         # Randomizing the input list of available persons, to help distributing the assigned dates of each person.
         _persons_randomized = sorted(_persons, key=lambda x: random.random())
@@ -388,7 +392,7 @@ class GjVolunteerAllocationGame(BaseGame):
         self._logger.debug("{} Date={} assignees stored. Leader: {}, Committee: {}, Non-commitee: {}".format(
             msg_prefix, date.date, date.assignees_leader, date.assignees_committee, date.assignees_noncommittee))
 
-    def match(self, dates, person_bank, reqs=None, optimal=""):
+    def match(self, dates, person_bank, requirements=None, optimal=""):
         """
         @type dates: [n_to_n_matching.WorkDate]
         @type person_bank: n_to_n_matching.PersonBank
@@ -397,9 +401,10 @@ class GjVolunteerAllocationGame(BaseGame):
         @return 
         @raise ValueError: If the given `dates` already filled with assignees.
         """
-        if not reqs:
+        self._logger.info(f"{requirements.interval_assigneddates_leader = }, {requirements.interval_assigneddates_commitee = }, {requirements.interval_assigneddates_general = }")
+        if not requirements:
             self._logger.warn("Requirement was not passed. Using default.")
-            reqs = DateRequirement()
+            requirements = DateRequirement()
 
         dates_need_attention = []
 
@@ -422,7 +427,7 @@ class GjVolunteerAllocationGame(BaseGame):
         # Assign personnels per date
         for date in dates_need_attention:
             self._log_date_content(date, msg_prefix="BEFORE assigning:")
-            self.assign_person(date, person_bank, reqs)
+            self.assign_person(date, person_bank, requirements)
             dates_lgtm.append(date)
             #dates_need_attention.remove(date)
             self._log_date_content(date, msg_prefix="AFTER assigning a day:")
@@ -465,12 +470,17 @@ class GjVolunteerAllocationGame(BaseGame):
         if WorkDate.ATTR_SECTION not in dates_prefs:
             raise ValueError(f"A required section '{WorkDate.ATTR_SECTION}' in the input file is missing.")
 
+        print(f"{dates_prefs = }")
         if DateRequirement.ATTR_SECTION in dates_prefs:
+            dates_dict = dates_prefs[DateRequirement.ATTR_SECTION]
             requirement = DateRequirement(
-                dates_prefs.get(WorkDate.REQ_INTERVAL_ASSIGNEDDATES_LEADER, "NOT_FOUND"),
-                dates_prefs.get(WorkDate.REQ_INTERVAL_ASSIGNEDDATES_COMMITTE, "NOT_FOUND"),
-                dates_prefs.get(WorkDate.REQ_INTERVAL_ASSIGNEDDATES_GENERAL, "NOT_FOUND"),
+                dates_dict.get(WorkDate.REQ_INTERVAL_ASSIGNEDDATES_LEADER, -1),
+                dates_dict.get(WorkDate.REQ_INTERVAL_ASSIGNEDDATES_COMMITTE, -1),
+                dates_dict.get(WorkDate.REQ_INTERVAL_ASSIGNEDDATES_GENERAL, -1),
             )
+        else:
+            print(f"Requirement is missing. Moving on with default value.")
+            requirement = DateRequirement()
 
         _dates = [WorkDate(datestr=d[WorkDate.ATTR_DATE],
                            school_off=d.get(WorkDate.ATTR_SCHOOL_OFF, False),
