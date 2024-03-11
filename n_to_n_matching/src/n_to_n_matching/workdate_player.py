@@ -134,6 +134,22 @@ class WorkDate(Player):
     def school_off(self):
         return self._school_off
 
+    def get_required_persons(self):
+        """
+        @rtype: int, int, int
+        """
+        needed_leader, needed_committee, needed_general = 0, 0, 0
+        needed_leader += self.req_num_leader
+        needed_committee += self.req_num_assignee_committee
+        needed_general += self.req_num_assignee_noncommittee
+        return needed_leader, needed_committee, needed_general
+
+    def get_current_assignednum(self):
+        """
+        @rtype: int
+        """
+        return len(self.assignees_leader) + len(self.assignees_committee) + len(self.assignees_noncommittee)
+        
 
 class DateRequirement():
     _MSG_SETTER_NOTALlOWED = "The value is only allowed to be set upon initializing the instance."
@@ -146,6 +162,21 @@ class DateRequirement():
         self._interval_assigneddates_leader = interval_assigneddates_leader
         self._interval_assigneddates_commitee = interval_assigneddates_commitee
         self._interval_assigneddates_general = interval_assigneddates_general
+
+        self._date_earliest = None
+
+    @property
+    def date_earliest(self):
+        return self._date_earliest
+
+    @date_earliest.setter
+    def date_earliest(self, date_obj):
+        """
+        @type datetime.date
+        """
+        if not isinstance(date_obj, date):
+            raise TypeError(f"Type '{type(date_obj)=}' does not match.")
+        self._date_earliest = date_obj
 
     @property
     def interval_assigneddates_leader(self):

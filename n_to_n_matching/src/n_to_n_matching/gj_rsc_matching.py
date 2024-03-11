@@ -29,18 +29,19 @@ class GjVolunteerMatching(ManyToManyMatching):
     _KEY_DATE = "date"
     _KEY_PERSON_ID = "person_id"
     _KEY_ROLE_ID = "role_id"
-    def __init__(self, dates_list, person_bank=None, max_allowance=None):
+    def __init__(self, dates_lgtm, dates_failed, person_bank=None, max_allowance=None):
         """
-        @type dictionary: dict
-        @param dictionary: needs the following keys:
+        @type dates_lgtm: dict
+        @param dates_lgtm: needs the following keys:
            - "date"
            - "guardian_id"
            - "role_id"
+        @type dates_failed: dict
         @type person_bank: PersonBank
         @type max_allowance: dict  (What `GjVolunteerAllocationGame.max_allowed_days_per_person` returns.)
         """
         super().__init__(
-            GjVolunteerMatching.dates_list_to_dict(dates_list))
+            GjVolunteerMatching.dates_list_to_dict(dates_lgtm))
         # Validate the dict: Error if the `dictionary` doesn't have expected keys.
 
         # Custom attributes
@@ -51,18 +52,27 @@ class GjVolunteerMatching(ManyToManyMatching):
         ## data access is lost. So for now, just as a convenience this list
         ## version of an instance that contains `WorkDate` instances is also retained.
         ## TODO In future this should better be refactored to remove redundancy.
-        self._dates_list = dates_list
+        self._dates_lgtm = dates_lgtm
+        self._dates_failed = dates_failed
         self._max_allowance = max_allowance
 
     def add_item(self, new_match):
         self._dataframe.append(new_match)
 
     @property
-    def dates_list(self):
-        return self._dates_list
+    def dates_lgtm(self):
+        return self._dates_lgtm
 
-    @dates_list.setter
-    def dates_list(self, val):
+    @dates_lgtm.setter
+    def dates_lgtm(self, val):
+        raise ValueError("This data must only be set upon initializing this class.")
+
+    @property
+    def dates_failed(self):
+        return self._dates_failed
+
+    @dates_failed.setter
+    def dates_failed(self, val):
         raise ValueError("This data must only be set upon initializing this class.")
 
     @property
