@@ -93,7 +93,7 @@ def test_find_dates_need_attention(game_obj):
     assert len(dates_lgtm) == 0
 
 def test_total_slots_required(game_obj):
-    needed_leader, needed_committee, needed_general = game_obj.total_slots_required(game_obj._dates)
+    needed_leader, needed_committee, needed_general = GjUtil.total_slots_required(game_obj._dates)
     _EXPECTED_LEADER = 4
     _EXPECTED_COMMITTEE = 9
     _EXPECTED_NONCOMMITTEE = 13
@@ -102,7 +102,7 @@ def test_total_slots_required(game_obj):
     assert needed_general == _EXPECTED_NONCOMMITTEE
 
 def test_total_persons_available(game_obj):
-    avaialable_leader, avaialable_committee, avaialable_general = game_obj.total_persons_available(game_obj._person_bank)
+    avaialable_leader, avaialable_committee, avaialable_general = GjUtil.total_persons_available(game_obj._person_bank)
     _EXPECTED_LEADER = 2
     _EXPECTED_COMMITTEE = 3
     _EXPECTED_NONCOMMITTEE = 5

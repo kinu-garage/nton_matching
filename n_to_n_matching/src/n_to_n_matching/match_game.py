@@ -53,17 +53,25 @@ class GjVolunteerAllocationGame(BaseGame):
         @type solution: n_to_n_matching.gj_rsc_matching.GjVolunteerMatching
         """
         _heading = "Result"
+        _heading_dates_lgtm = "Dates filled"
+        _heading_dates_failed = "Dates not-filled"
         print(f"{_heading:*^40}")
         print(f"Max allowance: {solution.max_allowance}")
 
         for person_id, person_obj in solution.person_bank.persons.items():
             num_assigned_dates, num_assigned_leader, num_assigned_committee, num_assigned_noncommittee = GjUtil.get_assigned_dates(
-                person_id, solution.dates_list)
+                person_id, solution.dates_lgtm)
             print(f"P-ID {person_id}, role: {person_obj.role_id}, #assigned date: {num_assigned_dates}")
+        print(f"{_heading_dates_lgtm:O^40}")
         for date, date_detail in solution.items():
             print(f"{date}\n\tLeader: {date_detail[WorkDate.ATTR_LIST_ASSIGNED_LEADER]}\n\t",
                   f"Commitee assignee: {date_detail[WorkDate.ATTR_LIST_ASSIGNED_COMMITTEE]}\n\t",
                   f"General assignee: {date_detail[WorkDate.ATTR_LIST_ASSIGNED_GENERAL]}")
+        print(f"{_heading_dates_failed:x^40}")
+        for date in solution.dates_failed:
+            print(f"{date.date}\n\tLeader: {date.assignees_leader}\n\t",
+                  f"Commitee assignee: {date.assignees_committee}\n\t",
+                  f"General assignee: {date.assignees_noncommittee}")
 
     def _set_logger(self, logger_obj):
         if logger_obj:
@@ -160,39 +168,6 @@ class GjVolunteerAllocationGame(BaseGame):
             self._log_date_content(date_lgtm, "find_dates_need_attention: date_lgtm")
         return dates_attention, dates_lgtm
 
-    def total_slots_required(self, dates):
-        """
-        @summary: Returns the number per each of 3 role in order to cover all the dates in the arg.
-        @note This method only handles the static info, NOT reflecting the current state of instances.
-        @rtype int, int, int
-        """
-        needed_leader, needed_committee, needed_general = 0, 0, 0
-        for day in dates:
-            needed_leader += day.req_num_leader
-            needed_committee += day.req_num_assignee_committee
-            needed_general += day.req_num_assignee_noncommittee
-        return needed_leader, needed_committee, needed_general
-
-    def total_persons_available(self, persons):
-        """
-        @summary: Returns the number in the requirement. Note this method only handles the static info, NOT reflecting the current state of instances.
-        @type persons: `PersonBank`
-        @rtype int, int, int
-        """
-        avaialable_leader, avaialable_committee, avaialable_general = 0, 0, 0
-        for key, value in persons.persons.items():
-            rid = value.role_id
-            if rid == PersonRole.LEADER.value:
-                avaialable_leader += 1
-            elif rid == PersonRole.COMMITTEE.value:
-                avaialable_committee += 1
-            elif rid == PersonRole.GENERAL.value:
-                avaialable_general += 1
-            else:
-                #TODO print error
-                print("Illegal person role-id found. PID: {}, Person obj: {}, role_id: {}. Ignoring.".format(key, value, rid))
-        return avaialable_leader, avaialable_committee, avaialable_general
-
     def max_allowed_days_per_person(self, dates, workers):
         """
         @summary:  Returning 2 sets of info for 3 kids of roles (leader, committee, generals):
@@ -214,8 +189,8 @@ class GjVolunteerAllocationGame(BaseGame):
                 print(f'\t{arg=}')
 
         # Find the total number of slots need to be filled in all `dates`.
-        needed_leader, needed_committee, needed_general = self.total_slots_required(dates)
-        available_leader, available_committee, available_general = self.total_persons_available(workers)
+        needed_leader, needed_committee, needed_general = GjUtil.total_slots_required(dates)
+        available_leader, available_committee, available_general = GjUtil.total_persons_available(workers)
         if not all([available_leader, available_committee, available_general]):
             raise ValueError("Any one of these must not be 0: available_leader={}, available_committee={}, available_general={}".format(
                 available_leader, available_committee, available_general))
@@ -313,10 +288,10 @@ class GjVolunteerAllocationGame(BaseGame):
             req_space_days = requirements.interval_assigneddates_general
 
         # If `person.last_assigned_date` is None, it's set to the same date as `date_wd` (so the `days_interval` will be 0 days).
-        _last_assigned_date = person.last_assigned_date if person.last_assigned_date else date_wd.date
-        days_interval = (date_wd.date - _last_assigned_date).days 
-        self._logger.warning(f"{person.last_assigned_date=}, {date_wd.date=}, {req_space_days=}, {days_interval=}")
-        if req_space_days <= days_interval:
+        _last_assigned_date = person.last_assigned_date if person.last_assigned_date else None
+        days_interval = (date_wd.date - _last_assigned_date).days if _last_assigned_date else 9999  # Setting arbitrarily impossibly large interval
+        self._logger.warning(f"{person.id=}: {person.last_assigned_date=}, {date_wd.date=}, {req_space_days=}, {days_interval=}")
+        if days_interval <= req_space_days:
             raise ValueError(f"Can't assign this person (ID={person.role_id}) on {date_wd} as there must be {req_space_days} days since the last assignment i.e. {_last_assigned_date}.")
 
         _enough_leaders, _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date_wd)
@@ -329,8 +304,7 @@ class GjVolunteerAllocationGame(BaseGame):
         elif (not _enough_noncommittee) and (person.role_id == PersonRole.GENERAL.value):
             date_wd.assignees_noncommittee.append(person)
         else:
-            raise ValueError("TBD hmmm not sure what this means, needs looked into. _enough_leaders: {}, _enough_committee: {}, _enough_noncommittee: {}".format(
-                _enough_leaders, _enough_committee, _enough_noncommittee))
+            raise ValueError(f"Not assigning {person.id=} as the needs didn't match to the role {person.role_id=}. {_enough_leaders=}, {_enough_committee=}, {_enough_noncommittee=}")
 
         person.last_assigned_date = date_wd.date
         self._log_dates("116 Memory addr of date.assignees_leader: {}".format(id(date_wd.assignees_leader)))
@@ -427,21 +401,26 @@ class GjVolunteerAllocationGame(BaseGame):
         # Assign personnels per date
         for date in dates_need_attention:
             self._log_date_content(date, msg_prefix="BEFORE assigning:")
+            _assignednum_before = date.get_current_assignednum()
             self.assign_person(date, person_bank, requirements)
-            dates_lgtm.append(date)
+            _assignednum_after = date.get_current_assignednum()
+            if (_assignednum_before < _assignednum_after):
+                dates_lgtm.append(date)
+                dates_need_attention.remove(date)
             #dates_need_attention.remove(date)
             self._log_date_content(date, msg_prefix="AFTER assigning a day:")
             self._logger.debug("AFTER assigning a day: All dates_need_attention={}\n\tdates_lgtm={}".format(dates_need_attention, dates_lgtm))
-        return dates_lgtm
+        return dates_lgtm, dates_need_attention
 
     def solve(self, optimal=""):
         """
         @description: 
         @return `GjVolunteerMatching`
         """
-        dates_list = self.match(self._dates, self._person_bank, self._reqs, optimal)
+        dates_lgtm, dates_failed = self.match(self._dates, self._person_bank, self._reqs, optimal)
         self._matching = GjVolunteerMatching(
-            dates_list,
+            dates_lgtm,
+            dates_failed,
             self._person_bank,
             self._person_bank.max_allowance
         )
@@ -487,7 +466,11 @@ class GjVolunteerAllocationGame(BaseGame):
                            req_num_leader=d.get(WorkDate.ATTR_NUM_LEADER, 1),
                            req_num_committee=d.get(WorkDate.ATTR_NUM_COMMITTEE, 2),
                            req_num_noncommittee=d.get(WorkDate.ATTR_NUM_GENERAL, 3)
-                           ) for d in dates_prefs[WorkDate.ATTR_SECTION]]            
+                           ) for d in dates_prefs[WorkDate.ATTR_SECTION]]
+        # Find the earliest date in the given dates in order for that date to be the beginning of the given period.
+        _date_earliest = min(date.date for date in _dates)
+        requirement.date_earliest = _date_earliest
+
         return _dates, requirement
 
     @classmethod

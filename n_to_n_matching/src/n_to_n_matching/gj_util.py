@@ -16,6 +16,7 @@
 
 import logging
 
+from n_to_n_matching.person_player import PersonRole
 from n_to_n_matching.workdate_player import WorkDate
 
 
@@ -60,3 +61,39 @@ class GjUtil:
         logger.debug("person_id: {}, assign_count: {}, assigned_leader: {} assigned_committee: {} assigned_noncommittee: {}".format(
             person_id, assign_count, assigned_leader, assigned_committee, assigned_noncommittee))
         return assign_count, assigned_leader, assigned_committee, assigned_noncommittee
+
+    @staticmethod
+    def total_persons_available(persons):
+        """
+        @summary: Returns the number in the requirement. Note this method only handles the static info, NOT reflecting the current state of instances.
+        @type persons: `PersonBank`
+        @rtype int, int, int
+        """
+        avaialable_leader, avaialable_committee, avaialable_general = 0, 0, 0
+        for key, value in persons.persons.items():
+            rid = value.role_id
+            if rid == PersonRole.LEADER.value:
+                avaialable_leader += 1
+            elif rid == PersonRole.COMMITTEE.value:
+                avaialable_committee += 1
+            elif rid == PersonRole.GENERAL.value:
+                avaialable_general += 1
+            else:
+                #TODO print error
+                print("Illegal person role-id found. PID: {}, Person obj: {}, role_id: {}. Ignoring.".format(key, value, rid))
+        return avaialable_leader, avaialable_committee, avaialable_general
+
+    @staticmethod
+    def total_slots_required(dates):
+        """
+        @summary: Returns the number per each of 3 role in order to cover all the dates in the arg.
+        @note This method only handles the static info, NOT reflecting the current state of instances.
+        @rtype int, int, int
+        """
+        needed_leader, needed_committee, needed_general = 0, 0, 0
+        for day in dates:
+            _reqnum_leader, _reqnum_committee, _reqnum_general = day.get_required_persons()
+            needed_leader += _reqnum_leader
+            needed_committee += _reqnum_committee
+            needed_general += _reqnum_general
+        return needed_leader, needed_committee, needed_general
