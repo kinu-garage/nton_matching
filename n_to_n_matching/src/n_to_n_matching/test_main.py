@@ -249,7 +249,7 @@ def fixture_persons_3():
               "child_id": "000045",
               "child_id": "000046",
             },
-            "role_id": PersonRole.LEADER.value
+            "role_id": PersonRole.GENERAL.value
         },
         {
             "id": 22,
@@ -399,31 +399,33 @@ def fixture_persons_3():
 def fixture_dates_0():
     return {
         DateRequirement.ATTR_SECTION: {
-            WorkDate.REQ_INTERVAL_ASSIGNEDDATES_LEADER: 4*7,
-            WorkDate.REQ_INTERVAL_ASSIGNEDDATES_COMMITTE: 5*7,
+            WorkDate.REQ_INTERVAL_ASSIGNEDDATES_LEADER: 3*7,
+            WorkDate.REQ_INTERVAL_ASSIGNEDDATES_COMMITTE: 3*7,
             WorkDate.REQ_INTERVAL_ASSIGNEDDATES_GENERAL: 5*7,
         },
         WorkDate.ATTR_SECTION: [
-            { WorkDate.ATTR_DATE: "2024-04-01", },
+            { WorkDate.ATTR_DATE: "2024-04-13", },
             {
-                WorkDate.ATTR_DATE: "2024-04-08",
+                WorkDate.ATTR_DATE: "2024-04-20",
                 WorkDate.ATTR_NUM_LEADER: 1,
                 WorkDate.ATTR_NUM_COMMITTEE: 3,
                 WorkDate.ATTR_NUM_GENERAL: 4,
             },
-            { WorkDate.ATTR_DATE: "2024-04-15", },
-            { WorkDate.ATTR_DATE: "2024-04-22", },
+            { WorkDate.ATTR_DATE: "2024-04-27", },
+            { WorkDate.ATTR_DATE: "2024-05-04", },
         ]}
 
 def fixture_dates_1():
     dates = fixture_dates_0()
     dates[WorkDate.ATTR_SECTION].extend([
-        { WorkDate.ATTR_DATE: "2024-04-29", },
-        { WorkDate.ATTR_DATE: "2024-05-06", },
-        { WorkDate.ATTR_DATE: "2024-05-13", },
-        { WorkDate.ATTR_DATE: "2024-05-20", 
+        { WorkDate.ATTR_DATE: "2024-05-11", },
+        { WorkDate.ATTR_DATE: "2024-05-18", },
+        { WorkDate.ATTR_DATE: "2024-05-25", 
           WorkDate.ATTR_NUM_GENERAL: 5,
          },
+        { WorkDate.ATTR_DATE: "2024-06-01", },
+        { WorkDate.ATTR_DATE: "2024-06-08", },
+        { WorkDate.ATTR_DATE: "2024-06-15", },
     ])
     return dates
 
