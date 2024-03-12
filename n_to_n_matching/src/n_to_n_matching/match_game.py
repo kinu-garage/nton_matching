@@ -166,6 +166,7 @@ class GjVolunteerAllocationGame(BaseGame):
             self._log_date_content(date_attention, "find_dates_need_attention: date_attention")
         for date_lgtm in dates_lgtm:
             self._log_date_content(date_lgtm, "find_dates_need_attention: date_lgtm")
+        self._logger.info(f"{dates_attention =}\n{dates_lgtm =}")
         return dates_attention, dates_lgtm
 
     def max_allowed_days_per_person(self, dates, workers):
@@ -328,7 +329,7 @@ class GjVolunteerAllocationGame(BaseGame):
             try:
                 self.assign_role(date, person, requirements)
             except ValueError as e:
-                self._logger.warning(str(e))
+                self._logger.warning(f"Error received: {str(e)}. Skipping {person.id =}, continuing.")
                 continue
         return date
 
@@ -345,6 +346,7 @@ class GjVolunteerAllocationGame(BaseGame):
 
           Also, `date` is NOT returned explicitly, but potentially its `assignee_ids_{commitee, noncommitee}` field is updated.
         """
+        self._logger.info(f"Began assigning {date.date =}")
         if not requirements:
             self._logger.warn("Requirement was not passed. Using default.")
             requirements = DateRequirement()
@@ -406,11 +408,11 @@ class GjVolunteerAllocationGame(BaseGame):
             _assignednum_after = date.get_current_assignednum()
             if (_assignednum_before < _assignednum_after):
                 dates_lgtm.append(date)
-                dates_need_attention.remove(date)
             #dates_need_attention.remove(date)
             self._log_date_content(date, msg_prefix="AFTER assigning a day:")
             self._logger.debug("AFTER assigning a day: All dates_need_attention={}\n\tdates_lgtm={}".format(dates_need_attention, dates_lgtm))
-        return dates_lgtm, dates_need_attention
+        rest_dates_need_attention = list(set(dates_need_attention).difference(dates_lgtm))
+        return dates_lgtm, rest_dates_need_attention
 
     def solve(self, optimal=""):
         """
