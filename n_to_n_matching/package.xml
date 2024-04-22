@@ -1,6 +1,6 @@
 <package format="3">
   <name>n_to_n_matching</name>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
   <description>Primarilly made for volunteer matching at GJLS</description>
   <maintainer email="iisaac.saito@gmail.com">Isaac Saito</maintainer>
   <license>Apache</license>
