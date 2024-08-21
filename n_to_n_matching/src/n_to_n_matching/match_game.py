@@ -45,7 +45,7 @@ class GjVolunteerAllocationGame(BaseGame):
         self._person_bank = PersonBank(persons)
         self._reqs = requirements
         self._check_inputs()
-        self._logger = self._set_logger(logger_obj)
+        self._logger = GjUtil.get_logger(__name__, logger_obj)
 
     @classmethod
     def print_tabular_stdout(cls, solution):
@@ -72,20 +72,6 @@ class GjVolunteerAllocationGame(BaseGame):
             print(f"{date.date}\n\tLeader: {date.assignees_leader}\n\t",
                   f"Commitee assignee: {date.assignees_committee}\n\t",
                   f"General assignee: {date.assignees_noncommittee}")
-
-    def _set_logger(self, logger_obj):
-        if logger_obj:
-            return logger_obj
-        logger = logging.getLogger(__name__)
-        _stream_handler = logging.StreamHandler()
-        _stream_handler.setLevel(logging.INFO)
-        _stream_format = logging.Formatter('%(name)s - %(levelname)s: %(message)s')
-        _stream_handler.setFormatter(_stream_format)
-        # TODO For some reason, setting the log level in a handler here
-        # doesn't seem to take effect. So setting basicConfig.
-        logging.basicConfig(level=logging.INFO)
-        #logger.addHandler(_stream_handler)
-        return logger
 
     def _check_inputs(self):
         """

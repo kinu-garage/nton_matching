@@ -23,7 +23,27 @@ from n_to_n_matching.workdate_player import WorkDate
 class GjUtil:
     @staticmethod
     def _get_logger():
+        """
+        @deprecated
+        """
         return logging.getLogger(__name__)
+
+    @staticmethod
+    def get_logger(name_logger="", logger_obj=None):
+        if not name_logger:
+            name_logger = __name__
+        if logger_obj:
+            return logger_obj
+        logger = logging.getLogger(name_logger)
+        _stream_handler = logging.StreamHandler()
+        _stream_handler.setLevel(logging.INFO)
+        _stream_format = logging.Formatter('%(name)s - %(levelname)s: %(message)s')
+        _stream_handler.setFormatter(_stream_format)
+        # TODO For some reason, setting the log level in a handler herelogger_obj
+        # doesn't seem to take effect. So setting basicConfig.
+        logging.basicConfig(level=logging.INFO)
+        #logger.addHandler(_stream_handler)
+        return logger
 
     @staticmethod
     def get_assigned_dates(person_id, dates, logger=None):
@@ -37,7 +57,7 @@ class GjUtil:
         @return assign_count, assigned_leader, assigned_committee, assigned_noncommittee
         """
         if not logger:
-            logger = GjUtil._get_logger()
+            logger = GjUtil.get_logger()
         if (not isinstance(person_id, int)) or (not isinstance(dates[0], WorkDate)):
             raise TypeError(f"One of the args' type is incompatible. person_id: '{type(person_id)}', date[0]: '{type(dates[0])}'")
 
