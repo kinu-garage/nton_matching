@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gjls_matching"
-version = "0.0.9"
+version = "0.1.1"
 description = "Matching for a voluteering schedule at a school"
 readme = "README.md"
 authors = [{ name = "Isaac Saito", email = "iisaac.saito@gmail.com" }]
