@@ -25,6 +25,7 @@ class PersonRole(Enum):
     COMMITTEE = 2
     GENERAL = 3
     CHILD = 4
+    TOUBAN_EXEMPT = 5
 
 
 class PersonPlayer(Player):
@@ -37,6 +38,14 @@ class PersonPlayer(Player):
     TYPE_OBLIGATION_LEADER = "leader"
     TYPE_OBLIGATION_COMMITEE = "commitee"
     TYPE_OBLIGATION_NONCOMMITEE = "non-commitee"
+    TYPE_OBLIGATION_GAKYU_COMMITEE = "学級委員"
+    TYPE_OBLIGATION_GYOJI_COMMITEE = "行事委員"
+    TYPE_OBLIGATION_PHOTOCLUE = "カメラ担当"
+    TYPE_OBLIGATION_UNDOKAI_COMMITEE = "運動会委員"
+    TYPE_OBLIGATION_SAFETY_COMMITEE = "安全対策委員"
+    TYPE_OBLIGATION_TOBAN_COMMITEE = "当番作成委員"
+    TYPE_OBLIGATION_TOSHO_COMMITEE = "図書委員"
+    TYPE_OBLIGATION_UNEI_COMMITEE = "運営関係者"
 
     def __init__(self,
                  name,
@@ -97,10 +106,9 @@ class PersonBank():
         @type persons: [GuardianPlayer]
         @param persons: Input list will be converted as a dict.
         """
-        persons_dict = {}
+        self._persons = {}
         for p in persons:
-            persons_dict[p.id] = p
-        self._persons = persons_dict
+            self._persons[p.id] = p
         self._max_allowance = None
 
     @property
