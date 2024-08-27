@@ -17,6 +17,7 @@
 import logging
 
 from n_to_n_matching.person_player import PersonRole
+from n_to_n_matching.util import Util
 from n_to_n_matching.workdate_player import WorkDate
 
 
@@ -30,20 +31,10 @@ class GjUtil:
 
     @staticmethod
     def get_logger(name_logger="", logger_obj=None):
-        if not name_logger:
-            name_logger = __name__
-        if logger_obj:
-            return logger_obj
-        logger = logging.getLogger(name_logger)
-        _stream_handler = logging.StreamHandler()
-        _stream_handler.setLevel(logging.INFO)
-        _stream_format = logging.Formatter('%(name)s - %(levelname)s: %(message)s')
-        _stream_handler.setFormatter(_stream_format)
-        # TODO For some reason, setting the log level in a handler herelogger_obj
-        # doesn't seem to take effect. So setting basicConfig.
-        logging.basicConfig(level=logging.INFO)
-        #logger.addHandler(_stream_handler)
-        return logger
+        """
+        @todo Remove this. This is made only as a tentative measure to avoid "not found" error after 'get_logger' is moved to n_to_n_matching.util.Util.
+        """
+        return Util.get_logger(name_logger, logger_obj)
 
     @staticmethod
     def get_assigned_dates(person_id, dates, logger=None):
