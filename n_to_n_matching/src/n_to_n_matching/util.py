@@ -22,7 +22,7 @@ import yaml
 
 class Util:
     @staticmethod
-    def get_logger(name_logger="", logger_obj=None):
+    def get_logger(name_logger="", logger_obj: logging.Logger=None) -> logging.Logger:
         if not name_logger:
             name_logger = __name__
         if logger_obj:

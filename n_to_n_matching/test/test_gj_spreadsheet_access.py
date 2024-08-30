@@ -17,8 +17,8 @@
 import openpyxl as xl
 import pytest
 
-from n_to_n_matching.gj_util import GjUtil
-from n_to_n_matching.gj_spreadsheet_access import GjToubanAccess2024 as GTA
+from gj.util import GjUtil
+from gj.spreadsheet_access import GjToubanAccess2024 as GTA
 
 @pytest.fixture
 def touban_accessor():

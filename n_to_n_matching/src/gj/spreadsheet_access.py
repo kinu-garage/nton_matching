@@ -18,8 +18,10 @@ from abc import ABC, abstractmethod
 import openpyxl as pyxl
 from openpyxl.cell.cell import Cell as pyxl_Cell
 
-from n_to_n_matching.gj_util import GjUtil
-from n_to_n_matching.person_player import PersonBank, PersonPlayer, PersonRole
+from gj.responsibility import Responsibility, ResponsibilityLevel
+from gj.role import Role, Roles_Definition
+from gj.util import GjUtil
+from n_to_n_matching.person_player import PersonBank, PersonPlayer
 from n_to_n_matching.spreadsheet_access import SpreadsheetCell, SpreadsheetRow
 
 
@@ -56,7 +58,7 @@ class GjRowEntity:
             raise ValueError(f"'row' object must be the type of SpreadsheetRow. Instead, {type(row)} was passed.")
         self._logger = GjUtil.get_logger(__name__, logger_obj)
         if not row:
-            self._logger.warn(f"'row' object is empty. Finishing creating an object without filling with the values.")
+            self._logger.warning(f"'row' object is empty. Finishing creating an object without filling with the values.")
             pass
         else:
             self._raw_row = row
@@ -79,6 +81,10 @@ class GjRowEntity:
                 cell_title = col_title_definition[cell.column]
             except KeyError as e:
                 self._logger.debug(f"Skipping this column. cell.column :{cell.column} is either not used or its definition not present in title definition.")                
+            # TODO Roles need special treatment; In the spreadsheet, roles are distributed in multiple columns and value of the cells in each col
+            #   are meant to be the date the person is assigned to each role. While this design makes sense from spreadsheet user's usecase,
+            #   it doesn't provide convenience for this tool's usecases.
+            #   To mitigate, add a special cell to the row object that conveys the type of role.
             ss_cell = SpreadsheetCell(cell, cell_title)
             ss_row.append(ss_cell)
 
@@ -139,7 +145,7 @@ class GjToubanAccess:
     """
     SUFFIX_MASTERSHEET = "マスター"
     MASTERSHEET_2024 = "2024当番マスター"
-    # ID of the column in a spreadsheet that shows the roles that the exemption rule is to eb applied for certain assignment.
+    # ID of the column in a spreadsheet that shows the responsibilitys that the exemption rule is to eb applied for certain assignment.
     COL_ROW_EXEMPT = "X"
     NAME_TOSHOIIN = "図書委員"
     LIST_AVAILABLE_TARGET = [NAME_TOSHOIIN]
@@ -161,7 +167,9 @@ class GjToubanAccess:
         raise LookupError(f"Requested sheet '{sheet_name}' not found in the given workbook obj.")
 
     def get_a_spread_sheet(self, path_xls, sheet_name=MASTERSHEET_2024):
-        wb = pyxl.load_workbook(path_xls)
+        # 'data_only=True' is needed in order to read a value from each cell, not the macro formula.
+        # See https://stackoverflow.com/a/35624928/577001
+        wb = pyxl.load_workbook(path_xls, data_only=True)
         sheet = self.get_a_sheet_by_name(wb, sheet_name)
         if not sheet:
             raise ValueError("In the workbook '{}', no sheet found that has the name '{}'".format(
@@ -181,7 +189,7 @@ class GjToubanAccess:
 
     def get_touban_master_sheet(self, path_xls, sheet_name=MASTERSHEET_2024):
         if not path_xls:
-            raise ValueErrorf("Either/Both args 'path_xls' and/or 'sheet_struct' is empty.")
+            raise ValueError("Either/Both args 'path_xls' and/or 'sheet_struct' is empty.")
         sheet = self.get_a_spread_sheet(path_xls, sheet_name)
         return sheet
 
@@ -228,6 +236,10 @@ class GjToubanAccess:
         persons = []
         # Read .xls file into a Python objects
         rows_xls_obj = self.get_touban_master_sheet(path_to_xls)
+        # Each row should obtain the ID number from a cell in each row in the spreadsheet,
+        # but how reliably maintained the ID in the spreadsheet is unknown. So here
+        # maintaining ID as well. This is just a backup.
+        _row_count = 1
         # Parse each row object, create 'PersonPlayer' object per each person.
         for row_pyxl in rows_xls_obj:
             # If the row is title, set title flag.
@@ -236,68 +248,86 @@ class GjToubanAccess:
             if row_pyxl[0].row <= title_row:
                 continue
             row = GjRowEntity(SpreadsheetRow(row_pyxl, is_title_row), self._logger)
-            # Identify GJ role.
-            role = row.exempted_on
-            _role_id = -1
+            # Identify GJ role(s), and deduce the responsibility from the role(s).
+            a_role = Role(row.exempted_on)
+            _responsibility = None
             try:
-                _role_id = self.match_role(role)
+                # TODO Assign role in addition to responsibility, for Tosho, Patrol.
+                #_responsibility_id = self.match_responsibility(a_role)
+                _responsibility = GjUtil.corresponding_responsibility(a_role)
             except ValueError as e:
                 self._logger.error(f"Column #{row.row_id}. Skipping as an unknown error occurred. {str(e)}")
                 continue
 
-            _family_id_in_sheet = row.id_in_sheet
+            if row.id_in_sheet:
+               _family_id_in_sheet = int(row.id_in_sheet)
+            else:
+                _family_id_in_sheet = _row_count
+            self._logger.debug(f"_family_id_in_sheet: {_family_id_in_sheet}")
 
             try:
                 _student_fullname = row.person_name
             except ValueError as e:
-                self._logger.warning(f"Student name empty. Likely empty row. Skipping.")
+                self._logger.debug(f"Student name empty. Likely empty row. Skipping.")
                 continue
+  
+            # TODO Not fully sure if 'exempted_on' is the correct selection.
+            #responsibility = GjUtil.gen_responsibility(row.exempted_on)
 
             person = PersonPlayer(
                 id =_family_id_in_sheet,
                 name =_student_fullname,
                 email_addr = row.email_emergency,
                 phone_num = row.phone_emergency,
+                roles=[a_role],
                 # 2024/08 'children_ids' attribute was originally created without the knowledge of how students/guardians are 
                 # grouped into a family info. Now that it's more known, 'children_ids' doesn't seem to be needed, hence
-                # setting 'None' here.
+                # setting 'None' here
                 children_ids = None,
-                role_id=_role_id
+                responsibilities=[_responsibility],
             )
-            self._logger.info(f"person ID: {person.id}, name: {person.name}")
+            self._logger.debug(f"person ID: {person.id}, name: {person.name}")
             persons.append(person)
-        self._logger.info(f"Persons: {persons}, size of persons: {len(persons)}")
+            _row_count += 1
+        self._logger.debug(f"Persons: {persons}, size of persons: {len(persons)}")
         return PersonBank(persons)
 
     @abstractmethod
-    def match_role(self, role=""):
+    def match_responsibility(self, a_role_id: Roles_Definition=""):
+        """
+        @deprecated: Potentially this method may no longer needed, replaced by GjUtil.corresponding_responsibility().
+        """
         raise NotImplementedError()
 
 
 class GjToubanAccess2024(GjToubanAccess):
-    def match_role(self, role=""):
+    def match_responsibility(self, a_role_id: Roles_Definition="") -> Responsibility:
         """
         @description: (Overriding abstract method)
         @raise ValueError
         """
-        _role_id = -1
-        if ((role == PersonPlayer.TYPE_OBLIGATION_GAKYU_COMMITEE) or
-            (role == PersonPlayer.TYPE_OBLIGATION_GYOJI_COMMITEE) or
-            (role == PersonPlayer.TYPE_OBLIGATION_TOBAN_COMMITEE) or
-            (role == PersonPlayer.TYPE_OBLIGATION_UNDOKAI_COMMITEE) or 
-            (role == PersonPlayer.TYPE_OBLIGATION_UNEI_COMMITEE)
+        _responsibility_id = -1
+        if ((a_role_id == Roles_Definition.GAKYU_COMMITEE) or
+            (a_role_id == Roles_Definition.GYOJI_COMMITEE) or
+            (a_role_id == Roles_Definition.TOUBAN_COMMITEE) or
+            (a_role_id == Roles_Definition.UNDOKAI_COMMITEE) or 
+            (a_role_id == Roles_Definition.UNEI_COMMITEE)
             ):
-            _role_id = PersonRole.TOUBAN_EXEMPT
-        elif ((role == PersonPlayer.TYPE_OBLIGATION_TOSHO_COMMITEE) or
-              (role == PersonPlayer.TYPE_OBLIGATION_SAFETY_COMMITEE)
+            _responsibility_id = ResponsibilityLevel.TOUBAN_EXEMPT.value
+        elif ((a_role_id == Roles_Definition.TOSHO_COMMITEE) or
+              (a_role_id == Roles_Definition.SAFETY_COMMITEE)
               ):
-            _role_id = PersonRole.COMMITTEE
+            _responsibility_id = ResponsibilityLevel.COMMITTEE.value
         elif (
             # Handling of photo clue might be still NOT lucid as of 2024/08. 
             # Ref. https://groups.google.com/a/gjls.org/g/touban-group/c/8ikrmPQ15lk
-            (role == PersonPlayer.TYPE_OBLIGATION_PHOTOCLUE) or
-            (not role)):
-            _role_id = PersonRole.GENERAL
+            (a_role_id == Roles_Definition.PHOTO_CLUE) or
+            (not a_role_id)):
+            _responsibility_id = ResponsibilityLevel.GENERAL.value
         else:
-            raise ValueError(f"Obtained role '{role}' does NOT match any rule. TODO Tbd")
-        return _role_id
+            raise ValueError(f"""Obtained role '{a_role_id}' does NOT match any rule.
+Make sure the input value conforms to the string expression this tool supports.
+It is likely that the input values come all the way down from the input 'master' file (likely in '.xlsx' format).
+So if that .xlsx file is an input data for your appliaction, check to see if there's any
+                             """)
+        return _responsibility_id
