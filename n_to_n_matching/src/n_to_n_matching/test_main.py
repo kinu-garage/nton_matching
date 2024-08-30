@@ -16,6 +16,7 @@
 
 from n_to_n_matching.match_game import GjVolunteerAllocationGame
 from n_to_n_matching.person_player import PersonRole
+from n_to_n_matching.gj_spreadsheet_access import GjToubanAccess2024 as GTA
 from n_to_n_matching.workdate_player import DateRequirement, WorkDate
 
 
@@ -429,14 +430,26 @@ def fixture_dates_1():
     ])
     return dates
 
-def test_1():
+def test_1(guardian_input):
     #dates_input = Util.read_yaml_to_dict(base_url, "dates.yml")
     dates_input = fixture_dates_1()
-    #guardian_input = Util.read_yaml_to_dict(base_url, "guardian.yml")
-    guardian_input = fixture_persons_3()
 
     solution = GjVolunteerAllocationGame.create_from_dictionaries(
         dates_input, guardian_input).solve()
     #for date, guardians in solution.items():
     #    print(f"{date}\n\tLeader: {guardians[WorkDate.ATTR_LIST_ASSIGNED_LEADER]}\n\t{guardians}")
     GjVolunteerAllocationGame.print_tabular_stdout(solution)
+
+def test_2():
+    #guardian_input = Util.read_yaml_to_dict(base_url, "guardian.yml")
+    guardian_input = fixture_persons_3()
+
+    test_1(guardian_input)
+
+def test_3_tosho(path_touban_master_sheet):
+    touban_accessor = GTA()
+    guardian_input = touban_accessor.gj_xls_to_personobj(path_touban_master_sheet)
+    dates_input = fixture_dates_1()
+
+    solution = GjVolunteerAllocationGame.create_from_dictionaries_2(
+        dates_input, guardian_input).solve()    

@@ -250,7 +250,7 @@ class GjToubanAccess:
             try:
                 _student_fullname = row.person_name
             except ValueError as e:
-                self._logger.warning(f"Student name empty. Likely empty row. Skipping.")
+                self._logger.debug(f"Student name empty. Likely empty row. Skipping.")
                 continue
 
             person = PersonPlayer(
@@ -264,9 +264,9 @@ class GjToubanAccess:
                 children_ids = None,
                 role_id=_role_id
             )
-            self._logger.info(f"person ID: {person.id}, name: {person.name}")
+            self._logger.debug(f"person ID: {person.id}, name: {person.name}")
             persons.append(person)
-        self._logger.info(f"Persons: {persons}, size of persons: {len(persons)}")
+        self._logger.debug(f"Persons: {persons}, size of persons: {len(persons)}")
         return PersonBank(persons)
 
     @abstractmethod
@@ -287,17 +287,17 @@ class GjToubanAccess2024(GjToubanAccess):
             (role == PersonPlayer.TYPE_OBLIGATION_UNDOKAI_COMMITEE) or 
             (role == PersonPlayer.TYPE_OBLIGATION_UNEI_COMMITEE)
             ):
-            _role_id = PersonRole.TOUBAN_EXEMPT
+            _role_id = PersonRole.TOUBAN_EXEMPT.value
         elif ((role == PersonPlayer.TYPE_OBLIGATION_TOSHO_COMMITEE) or
               (role == PersonPlayer.TYPE_OBLIGATION_SAFETY_COMMITEE)
               ):
-            _role_id = PersonRole.COMMITTEE
+            _role_id = PersonRole.COMMITTEE.value
         elif (
             # Handling of photo clue might be still NOT lucid as of 2024/08. 
             # Ref. https://groups.google.com/a/gjls.org/g/touban-group/c/8ikrmPQ15lk
             (role == PersonPlayer.TYPE_OBLIGATION_PHOTOCLUE) or
             (not role)):
-            _role_id = PersonRole.GENERAL
+            _role_id = PersonRole.GENERAL.value
         else:
             raise ValueError(f"Obtained role '{role}' does NOT match any rule. TODO Tbd")
         return _role_id

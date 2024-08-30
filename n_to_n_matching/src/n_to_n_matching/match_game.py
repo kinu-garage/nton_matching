@@ -36,13 +36,13 @@ class GjVolunteerAllocationGame(BaseGame):
 
     def __init__(self, dates, persons, requirements=None, clean=False, logger_obj=None):
         """
-        @type persons: [PersonPlayer]
+        @type persons: PersonBank
         @param persons: Will be converted to `PersonBank` class instance.
         @type requirements: DateRequirement
         """
         super().__init__(clean)
         self._dates = dates
-        self._person_bank = PersonBank(persons)
+        self._person_bank = persons
         self._reqs = requirements
         self._check_inputs()
         self._logger = GjUtil.get_logger(__name__, logger_obj)
@@ -177,7 +177,7 @@ class GjVolunteerAllocationGame(BaseGame):
 
         # Find the total number of slots need to be filled in all `dates`.
         needed_leader, needed_committee, needed_general = GjUtil.total_slots_required(dates)
-        available_leader, available_committee, available_general = GjUtil.total_persons_available(workers)
+        available_leader, available_committee, available_general, exempted = GjUtil.total_persons_available(workers)
         if not all([available_leader, available_committee, available_general]):
             raise ValueError("Any one of these must not be 0: available_leader={}, available_committee={}, available_general={}".format(
                 available_leader, available_committee, available_general))
@@ -495,7 +495,22 @@ class GjVolunteerAllocationGame(BaseGame):
         """
         _dates, _reqs = GjVolunteerAllocationGame.create_from_dict_dates(dates_prefs, clean=clean)
         _persons = GjVolunteerAllocationGame.create_from_dict_persons(personnel_prefs, clean=clean)
-        game = cls(_dates, _persons, _reqs, clean)
+        game = cls(_dates, PersonBank(_persons), _reqs, clean)
+        return game
+
+    @classmethod
+    def create_from_dictionaries_2(
+            cls, dates_prefs, persons_obj, clean=False):
+        """
+        @summary: Input data converter from text-based (dictionary in .yaml) format to Python format.
+          Or to see it from a different angle, this is a constructor https://realpython.com/instance-class-and-static-methods-demystified/#delicious-pizza-factories-with-classmethod
+        @type dates_prefs: [{ "id", "name", "phone", "email", "children": {"child_id"}, "role_id" }]
+        @type persons_obj: PersonBank
+        @param personnel_prefs: List particularly made by .yaml input.
+        @rtype: matching.BaseGame
+        """
+        _dates, _reqs = GjVolunteerAllocationGame.create_from_dict_dates(dates_prefs, clean=clean)
+        game = cls(_dates, persons_obj, _reqs, clean)
         return game
 
     def check_stability(self):

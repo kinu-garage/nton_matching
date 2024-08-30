@@ -80,7 +80,7 @@ class GjUtil:
         @type persons: `PersonBank`
         @rtype int, int, int
         """
-        avaialable_leader, avaialable_committee, avaialable_general = 0, 0, 0
+        avaialable_leader, avaialable_committee, avaialable_general, exempted = 0, 0, 0, 0
         for key, value in persons.persons.items():
             rid = value.role_id
             if rid == PersonRole.LEADER.value:
@@ -89,10 +89,12 @@ class GjUtil:
                 avaialable_committee += 1
             elif rid == PersonRole.GENERAL.value:
                 avaialable_general += 1
+            elif rid == PersonRole.TOUBAN_EXEMPT.value:
+                exempted += 1
             else:
                 #TODO print error
                 print("Illegal person role-id found. PID: {}, Person obj: {}, role_id: {}. Ignoring.".format(key, value, rid))
-        return avaialable_leader, avaialable_committee, avaialable_general
+        return avaialable_leader, avaialable_committee, avaialable_general, exempted
 
     @staticmethod
     def total_slots_required(dates):
