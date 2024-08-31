@@ -23,7 +23,7 @@ from matching import BaseGame
 from matching.exceptions import PlayerExcludedWarning
 
 from n_to_n_matching.gj_rsc_matching import GjVolunteerMatching
-from n_to_n_matching.person_player import PersonBank, PersonPlayer, PersonRole
+from n_to_n_matching.person_player import PersonBank, PersonPlayer, PersonResponsibility
 from n_to_n_matching.gj_util import GjUtil
 from n_to_n_matching.workdate_player import DateRequirement, WorkDate
 
@@ -31,7 +31,7 @@ from n_to_n_matching.workdate_player import DateRequirement, WorkDate
 class GjVolunteerAllocationGame(BaseGame):
     DATES = "dates"
     WORKERS = "workers"
-    ATTR_MAX_OCCURRENCE_PER_ROLE = "max_occurence"
+    ATTR_MAX_OCCURRENCE_PER_responsibility = "max_occurence"
     ATTR_UNLUCKY_PERSON_NUMS = "num_unlucky_person"
 
     def __init__(self, dates, persons, requirements=None, clean=False, logger_obj=None):
@@ -61,7 +61,7 @@ class GjVolunteerAllocationGame(BaseGame):
         for person_id, person_obj in solution.person_bank.persons.items():
             num_assigned_dates, num_assigned_leader, num_assigned_committee, num_assigned_noncommittee = GjUtil.get_assigned_dates(
                 person_id, solution.dates_lgtm)
-            print(f"P-ID {person_id}, role: {person_obj.role_id}, #assigned date: {num_assigned_dates}")
+            print(f"P-ID {person_id}, responsibility: {person_obj.responsibility_id}, #assigned date: {num_assigned_dates}")
         print(f"{_heading_dates_lgtm:O^40}")
         for date, date_detail in solution.items():
             print(f"{date}\n\tLeader: {date_detail[WorkDate.ATTR_LIST_ASSIGNED_LEADER]}\n\t",
@@ -157,18 +157,18 @@ class GjVolunteerAllocationGame(BaseGame):
 
     def max_allowed_days_per_person(self, dates, workers):
         """
-        @summary:  Returning 2 sets of info for 3 kids of roles (leader, committee, generals):
-            - max_*: Maximum number of times each person should be assigned to the correspondent role in the given period.
-            - unlucky_*: Number of persons who need to take on the correspondent role once more than `max_*` number.
+        @summary:  Returning 2 sets of info for 3 kids of responsibilitys (leader, committee, generals):
+            - max_*: Maximum number of times each person should be assigned to the correspondent responsibility in the given period.
+            - unlucky_*: Number of persons who need to take on the correspondent responsibility once more than `max_*` number.
         @type dates: [n_to_n_matching.WorkDate]
         @type workers: `PersonBank`
         @return: Dictionary structure should look like this:
             {
-                PersonRole.LEADER: {ATTR_MAX_OCCURRENCE: max_leader, ATTR_UNLUCKY_PERSON_NUMS: unlucky_leaders},
-                PersonRole.COMMITTEE: {ATTR_MAX_OCCURRENCE: max_committee, ATTR_UNLUCKY_PERSON_NUMS: unlucky_committees},
-                PersonRole.GENERAL: {ATTR_MAX_OCCURRENCE: max_general, ATTR_UNLUCKY_PERSON_NUMS: unlucky_generals},
+                PersonResponsibility.LEADER: {ATTR_MAX_OCCURRENCE: max_leader, ATTR_UNLUCKY_PERSON_NUMS: unlucky_leaders},
+                PersonResponsibility.COMMITTEE: {ATTR_MAX_OCCURRENCE: max_committee, ATTR_UNLUCKY_PERSON_NUMS: unlucky_committees},
+                PersonResponsibility.GENERAL: {ATTR_MAX_OCCURRENCE: max_general, ATTR_UNLUCKY_PERSON_NUMS: unlucky_generals},
             }
-        @raise ValueError: If not enough number of persons with a role is given in `workers`.
+        @raise ValueError: If not enough number of persons with a responsibility is given in `workers`.
         """
         def _debug_print_max_per_person(*args):
             print("Debug:\t")
@@ -191,14 +191,14 @@ class GjVolunteerAllocationGame(BaseGame):
             raise ZeroDivisionError("Theres is at least one arg that is zero. {}".format(
                 _debug_print_max_per_person(max_leader, unlucky_leaders, max_committee, unlucky_committees, max_general, unlucky_generals))) from e
         max_allowance = {
-            PersonRole.LEADER: {
-                self.ATTR_MAX_OCCURRENCE_PER_ROLE: max_leader,
+            PersonResponsibility.LEADER: {
+                self.ATTR_MAX_OCCURRENCE_PER_responsibility: max_leader,
                 self.ATTR_UNLUCKY_PERSON_NUMS: unlucky_leaders},
-            PersonRole.COMMITTEE: {
-                self.ATTR_MAX_OCCURRENCE_PER_ROLE: max_committee,
+            PersonResponsibility.COMMITTEE: {
+                self.ATTR_MAX_OCCURRENCE_PER_responsibility: max_committee,
                 self.ATTR_UNLUCKY_PERSON_NUMS: unlucky_committees},
-            PersonRole.GENERAL: {
-                self.ATTR_MAX_OCCURRENCE_PER_ROLE: max_general,
+            PersonResponsibility.GENERAL: {
+                self.ATTR_MAX_OCCURRENCE_PER_responsibility: max_general,
                 self.ATTR_UNLUCKY_PERSON_NUMS: unlucky_generals},
             }
         self._logger.info("max_allowance: {}".format(max_allowance))
@@ -224,32 +224,34 @@ class GjVolunteerAllocationGame(BaseGame):
         fullybooked_workers = []
         overlybooked_workers = []
         for person_id, worker in persons.persons.items():
+            self._logger.info(f"person_id: '{person_id}', worker.name: {worker.name}")
             # TODO Calling `_get_assigned_dates` in the next line relies on a member variable (`_dates`), which I don't like. So there's a room for refactoring.
             assigned_dates, assigned_leader, assigned_committee, assigned_noncommittee = GjUtil.get_assigned_dates(
                 person_id, self._dates)
             max_days_incl_overbook = assigned_dates + overbook_allowed_num
             # Maybe a bit unintuitive but passing a value via enum subclass is a valid way to access
             # a value of a member of an enum class https://realpython.com/python-enum/#accessing-enumeration-members
-            this_person_allowance = persons.max_allowance[PersonRole(worker.role_id)]
-            _occurrence_per_role = this_person_allowance[self.ATTR_MAX_OCCURRENCE_PER_ROLE]
-            # If a person's assigned dates is smaller than the role's max occurrence, then this person can take more dates.
-            if assigned_dates < _occurrence_per_role:
+            # TODO Right now only considering a single responsibility in the next logic. For "committee", needs to consider "committee + leader".
+            this_person_allowance = persons.max_allowance[PersonResponsibility(worker.responsibility_id)]
+            _occurrence_per_responsibility = this_person_allowance[self.ATTR_MAX_OCCURRENCE_PER_responsibility]
+            # If a person's assigned dates is smaller than the responsibility's max occurrence, then this person can take more dates.
+            if assigned_dates < _occurrence_per_responsibility:
                 free_workers.append(worker)
-            elif assigned_dates == _occurrence_per_role:
+            elif assigned_dates == _occurrence_per_responsibility:
                 fullybooked_workers.append(worker)
-            elif max_days_incl_overbook == _occurrence_per_role:
+            elif max_days_incl_overbook == _occurrence_per_responsibility:
                 overlybooked_workers.append(worker)
-            elif max_days_incl_overbook < _occurrence_per_role:
+            elif max_days_incl_overbook < _occurrence_per_responsibility:
                 raise ValueError(f"Person ID {person_id} is assigned for '{assigned_dates}' days, which exceeds the limit assigned days={max_days_incl_overbook}. TODO Needs figured out")
             else:
-                self._logger.warning(f"_occurrence_per_role = '{_occurrence_per_role}' not falling under any criteria. Skipping for now.")
-            self._logger.info(f"PersonRole(worker.role_id): '{PersonRole(worker.role_id)}', assigned_dates: '{assigned_dates}', _occurrence_per_role: '{_occurrence_per_role}'")
+                self._logger.warning(f"_occurrence_per_responsibility = '{_occurrence_per_responsibility}' not falling under any criteria. Skipping for now.")
+            self._logger.info(f"PersonResponsibility(worker.responsibility_id): '{PersonResponsibility(worker.responsibility_id)}', assigned_dates: '{assigned_dates}', _occurrence_per_responsibility: '{_occurrence_per_responsibility}'")
         self._log_persons_per_bookings(free_workers, fullybooked_workers, overlybooked_workers, msg_prefix="151")
         #if not free_workers:
         #    raise ValueError("All given persons are already assigned to the max number of dates")
         return free_workers, fullybooked_workers, overlybooked_workers
 
-    def assign_role(self, date_wd, person, requirements=None):
+    def assign_responsibility(self, date_wd, person, requirements=None):
         """
         @type date_wd: WorkDate
         @todo Rename appropriately esp. there are other methods that have similar names.
@@ -264,11 +266,11 @@ class GjVolunteerAllocationGame(BaseGame):
             raise TypeError(f"One of the args' type is incompatible. person: '{type(person)}', date_wd: '{type(WorkDate)}'")
         # If the previous assigned date is closer than what's in the requirement, this person cannot be assigned
         req_space_days = -1
-        if (person.role_id == PersonRole.LEADER.value):
+        if (person.responsibility_id == PersonResponsibility.LEADER.value):
             req_space_days = requirements.interval_assigneddates_leader
-        elif (person.role_id == PersonRole.COMMITTEE.value):
+        elif (person.responsibility_id == PersonResponsibility.COMMITTEE.value):
             req_space_days = requirements.interval_assigneddates_commitee
-        elif (person.role_id == PersonRole.GENERAL.value):
+        elif (person.responsibility_id == PersonResponsibility.GENERAL.value):
             req_space_days = requirements.interval_assigneddates_general
 
         # If `person.last_assigned_date` is None, it's set to the same date as `date_wd` (so the `days_interval` will be 0 days).
@@ -276,19 +278,19 @@ class GjVolunteerAllocationGame(BaseGame):
         days_interval = (date_wd.date - _last_assigned_date).days if _last_assigned_date else 9999  # Setting arbitrarily impossibly large interval
         self._logger.warning(f"{person.id=}: {person.last_assigned_date=}, {date_wd.date=}, {req_space_days=}, {days_interval=}")
         if days_interval <= req_space_days:
-            raise ValueError(f"Can't assign this person (ID={person.role_id}) on {date_wd} as there must be {req_space_days} days since the last assignment i.e. {_last_assigned_date}.")
+            raise ValueError(f"Can't assign this person (ID={person.responsibility_id}) on {date_wd} as there must be {req_space_days} days since the last assignment i.e. {_last_assigned_date}.")
 
         _enough_leaders, _enough_committee, _enough_noncommittee = self.eval_enough_assignees(date_wd)
         if all([_enough_leaders, _enough_committee, _enough_noncommittee]):
             return  # TODO Think of better return value to communicate the result
-        elif (not _enough_leaders) and (person.role_id == PersonRole.LEADER.value):
+        elif (not _enough_leaders) and (person.responsibility_id == PersonResponsibility.LEADER.value):
             date_wd.assignees_leader.append(person)
-        elif (not _enough_committee) and (person.role_id == PersonRole.COMMITTEE.value):
+        elif (not _enough_committee) and (person.responsibility_id == PersonResponsibility.COMMITTEE.value):
             date_wd.assignees_committee.append(person)
-        elif (not _enough_noncommittee) and (person.role_id == PersonRole.GENERAL.value):
+        elif (not _enough_noncommittee) and (person.responsibility_id == PersonResponsibility.GENERAL.value):
             date_wd.assignees_noncommittee.append(person)
         else:
-            raise ValueError(f"Not assigning {person.id=} as the needs didn't match to the role {person.role_id=}. {_enough_leaders=}, {_enough_committee=}, {_enough_noncommittee=}")
+            raise ValueError(f"Not assigning {person.id=} as the needs didn't match to the responsibility {person.responsibility_id=}. {_enough_leaders=}, {_enough_committee=}, {_enough_noncommittee=}")
 
         person.last_assigned_date = date_wd.date
         self._log_dates("116 Memory addr of date.assignees_leader: {}".format(id(date_wd.assignees_leader)))
@@ -310,7 +312,7 @@ class GjVolunteerAllocationGame(BaseGame):
         _persons_randomized = sorted(_persons, key=lambda x: random.random())
         for person in _persons_randomized:
             try:
-                self.assign_role(date, person, requirements)
+                self.assign_responsibility(date, person, requirements)
             except ValueError as e:
                 self._logger.warning(f"Error received: {str(e)}. Skipping {person.id =}, continuing.")
                 continue
@@ -461,19 +463,19 @@ class GjVolunteerAllocationGame(BaseGame):
     def create_from_dict_persons(cls, person_prefs, clean=False):
         """
         @summary: Input data converter from text-based (dictionary in .yaml) format to Python format.
-        @type personnel_prefs: [{ "id", "name", "phone", "email", "children": {"child_id"}, "role_id" }]
+        @type personnel_prefs: [{ "id", "name", "phone", "email", "children": {"child_id"}, "responsibility_id" }]
         @rtype: [PersonPlayer]
         """
         _persons = []
         for p in person_prefs:
-            _role_id = p.get(PersonPlayer.ATTR_ROLE_ID, PersonRole.GENERAL)
+            _responsibility_id = p.get(PersonPlayer.ATTR_responsibility_id, PersonResponsibility.GENERAL)
             person = PersonPlayer(
                 id=p[PersonPlayer.ATTR_ID],
                 name=p[PersonPlayer.ATTR_NAME],
                 email_addr = p[PersonPlayer.ATTR_EMAIL],
                 phone_num = p[PersonPlayer.ATTR_PHONE],
                 children_ids = p[PersonPlayer.ATTR_CHILDREN],
-                role_id=_role_id
+                responsibility_id=_responsibility_id
             )
             _persons.append(person)
         return _persons
@@ -484,8 +486,8 @@ class GjVolunteerAllocationGame(BaseGame):
         """
         @summary: Input data converter from text-based (dictionary in .yaml) format to Python format.
           Or to see it from a different angle, this is a constructor https://realpython.com/instance-class-and-static-methods-demystified/#delicious-pizza-factories-with-classmethod
-        @type dates_prefs: [{ "id", "name", "phone", "email", "children": {"child_id"}, "role_id" }]
-        @type personnel_prefs: [{ "id", "name", "phone", "email", "children": {"child_id"}, "role_id" }]
+        @type dates_prefs: [{ "id", "name", "phone", "email", "children": {"child_id"}, "responsibility_id" }]
+        @type personnel_prefs: [{ "id", "name", "phone", "email", "children": {"child_id"}, "responsibility_id" }]
         @param personnel_prefs: List particularly made by .yaml input.
         @rtype: matching.BaseGame
         """
@@ -500,7 +502,7 @@ class GjVolunteerAllocationGame(BaseGame):
         """
         @summary: Input data converter from text-based (dictionary in .yaml) format to Python format.
           Or to see it from a different angle, this is a constructor https://realpython.com/instance-class-and-static-methods-demystified/#delicious-pizza-factories-with-classmethod
-        @type dates_prefs: [{ "id", "name", "phone", "email", "children": {"child_id"}, "role_id" }]
+        @type dates_prefs: [{ "id", "name", "phone", "email", "children": {"child_id"}, "responsibility_id" }]
         @type persons_obj: PersonBank
         @param personnel_prefs: List particularly made by .yaml input.
         @rtype: matching.BaseGame

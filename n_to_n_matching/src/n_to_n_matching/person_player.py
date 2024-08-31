@@ -20,8 +20,8 @@ from enum import Enum
 from matching.players import Player
 
 
-class PersonRole(Enum):
-    LEADER = 1
+class PersonResponsibility(Enum):
+    LEADER = 1  # 202408 Deprecated. There may not be many cases where someone in the input data is designated as a 'leader'.
     COMMITTEE = 2
     GENERAL = 3
     CHILD = 4
@@ -34,7 +34,7 @@ class PersonPlayer(Player):
     ATTR_NAME = "name"
     ATTR_PHONE = "phone"
     ATTR_CHILDREN = "children"
-    ATTR_ROLE_ID = "role_id"
+    ATTR_responsibility_id = "responsibility_id"
     TYPE_OBLIGATION_LEADER = "leader"
     TYPE_OBLIGATION_COMMITEE = "commitee"
     TYPE_OBLIGATION_NONCOMMITEE = "non-commitee"
@@ -52,20 +52,22 @@ class PersonPlayer(Player):
                  id,
                  email_addr,
                  phone_num,
-                 role_id=PersonRole.GENERAL,
-                 children_ids=[]):
+                 responsibility_id=PersonResponsibility.GENERAL,
+                 children_ids=[],
+                 max_days_leader=0):
        """
-       @param role_id: Any of `GuardianRole` enum item.
+       @param responsibility_id: Any of `Guardianresponsibility` enum item.
        """
        super().__init__(name)  # For the rest of __init__, assigning `name` can be skipped because it's done in super class.
        self._id = id
        self.name = name
        self._email_addr = email_addr
        self._phone_num = phone_num
-       self._role_id = role_id
+       self._responsibility_id = responsibility_id
        self._children_ids = children_ids
        self._last_assigned_date = None
-
+       self._max_days_leader = max_days_leader
+    
     @property
     def id(self):
         return self._id
@@ -75,12 +77,12 @@ class PersonPlayer(Player):
         raise AttributeError("`id` should only be settable as an initial input and cannot be overwritten.")
 
     @property
-    def role_id(self):
-        return self._role_id
+    def responsibility_id(self):
+        return self._responsibility_id
     
-    @role_id.setter
-    def role_id(self, val):
-        raise AttributeError("`role_id` should only be settable as an initial input and cannot be overwritten.")
+    @responsibility_id.setter
+    def responsibility_id(self, val):
+        raise AttributeError("`responsibility_id` should only be settable as an initial input and cannot be overwritten.")
 
     @property
     def last_assigned_date(self):
@@ -98,6 +100,10 @@ class PersonPlayer(Player):
         if not isinstance(d, date):
             raise TypeError(f"Input type must be 'datetime.date' but received '{type(d)}'")
         self._last_assigned_date = d
+
+    @property
+    def max_days_leader(self):
+        return self._max_days_leader
 
 
 class PersonBank():

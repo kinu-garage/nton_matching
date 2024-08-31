@@ -16,7 +16,7 @@
 
 import logging
 
-from n_to_n_matching.person_player import PersonRole
+from n_to_n_matching.person_player import PersonResponsibility
 from n_to_n_matching.util import Util
 from n_to_n_matching.workdate_player import WorkDate
 
@@ -41,7 +41,7 @@ class GjUtil:
         """
         @summary Returns the number that a person of `person_id` is assigned to
           in the period that is given to the tool, regardless the type
-          of the role.
+          of the responsibility.
         @type dates: [WorkDate]
         @type logger: logging.Logger
         @rtype int, int, int, int
@@ -50,7 +50,7 @@ class GjUtil:
         if not logger:
             logger = GjUtil.get_logger()
         if (not isinstance(person_id, int)) or (not isinstance(dates[0], WorkDate)):
-            raise TypeError(f"One of the args' type is incompatible. person_id: '{type(person_id)}', date[0]: '{type(dates[0])}'")
+            raise TypeError(f"One of the args' type is incompatible. person_id: '{type(person_id)}' (value: '{person_id}'), date[0]: '{type(dates[0])}' (value: {dates[0]})")
 
         assign_count = 0
         def count_assigned(person_id, persons, countednum):
@@ -82,24 +82,30 @@ class GjUtil:
         """
         avaialable_leader, avaialable_committee, avaialable_general, exempted = 0, 0, 0, 0
         for key, value in persons.persons.items():
-            rid = value.role_id
-            if rid == PersonRole.LEADER.value:
+            rid = value.responsibility_id
+            if rid == PersonResponsibility.LEADER.value:
+                # As of 202408 the usecase to designate a person as a 'leader' in the tool's input data is deprecated.
+                # Here the logic is still kept alive as this decision for deprecation is still fluid.
                 avaialable_leader += 1
-            elif rid == PersonRole.COMMITTEE.value:
+            elif rid == PersonResponsibility.COMMITTEE.value:
+                # As of 202408 the logic to assign 'leader' is unclear (this needs to be asked for the domain expert).
+                # TODO For now all 'committee' member gets 1 leader value, which won't work for sure 
+                # once https://github.com/kinu-garage/nton_matching/issues/22 is addressed, hence this is temporary.
+                avaialable_leader += 1
                 avaialable_committee += 1
-            elif rid == PersonRole.GENERAL.value:
+            elif rid == PersonResponsibility.GENERAL.value:
                 avaialable_general += 1
-            elif rid == PersonRole.TOUBAN_EXEMPT.value:
+            elif rid == PersonResponsibility.TOUBAN_EXEMPT.value:
                 exempted += 1
             else:
                 #TODO print error
-                print("Illegal person role-id found. PID: {}, Person obj: {}, role_id: {}. Ignoring.".format(key, value, rid))
+                print(f"Illegal person responsibility-id found. Person ID: {key}, Person obj: {value}, responsibility_id: {rid}. Ignoring.")
         return avaialable_leader, avaialable_committee, avaialable_general, exempted
 
     @staticmethod
     def total_slots_required(dates):
         """
-        @summary: Returns the number per each of 3 role in order to cover all the dates in the arg.
+        @summary: Returns the number per each of 3 responsibility in order to cover all the dates in the arg.
         @note This method only handles the static info, NOT reflecting the current state of instances.
         @rtype int, int, int
         """

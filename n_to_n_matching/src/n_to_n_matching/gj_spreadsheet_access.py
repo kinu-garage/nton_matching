@@ -19,7 +19,7 @@ import openpyxl as pyxl
 from openpyxl.cell.cell import Cell as pyxl_Cell
 
 from n_to_n_matching.gj_util import GjUtil
-from n_to_n_matching.person_player import PersonBank, PersonPlayer, PersonRole
+from n_to_n_matching.person_player import PersonBank, PersonPlayer, PersonResponsibility
 from n_to_n_matching.spreadsheet_access import SpreadsheetCell, SpreadsheetRow
 
 
@@ -139,7 +139,7 @@ class GjToubanAccess:
     """
     SUFFIX_MASTERSHEET = "マスター"
     MASTERSHEET_2024 = "2024当番マスター"
-    # ID of the column in a spreadsheet that shows the roles that the exemption rule is to eb applied for certain assignment.
+    # ID of the column in a spreadsheet that shows the responsibilitys that the exemption rule is to eb applied for certain assignment.
     COL_ROW_EXEMPT = "X"
     NAME_TOSHOIIN = "図書委員"
     LIST_AVAILABLE_TARGET = [NAME_TOSHOIIN]
@@ -211,7 +211,7 @@ class GjToubanAccess:
         self._logger.debug(f"Rows matched: {rows_matched}")
         return rows_matched, row_ids
 
-    def gj_xls_to_personobj(self, path_to_xls, title_row=3):
+    def gj_xls_to_personobj(self, path_to_xls, title_row=3, max_days_leader=1):
         """
         @description Convert GJLS' .xls specific format to the format this package can handle.
 
@@ -222,6 +222,7 @@ class GjToubanAccess:
         @type path_to_xls: str
         @param title_row: The row where the values represent the type of the info that the cells under each column carries.
           As of 20240827, this title row must be a single row (i.e. Cases where titles are written in multiple rows are not yet supported).
+        @param max_days_leader: Max number of days committee members can be assigned to "leader" responsibility in the given period.
         @rtype: dict
         @return: n_to_n_matching.person_player.PersonBank
         """
@@ -236,11 +237,11 @@ class GjToubanAccess:
             if row_pyxl[0].row <= title_row:
                 continue
             row = GjRowEntity(SpreadsheetRow(row_pyxl, is_title_row), self._logger)
-            # Identify GJ role.
-            role = row.exempted_on
-            _role_id = -1
+            # Identify GJ responsibility.
+            responsibility = row.exempted_on
+            _responsibility_id = -1
             try:
-                _role_id = self.match_role(role)
+                _responsibility_id = self.match_responsibility(responsibility)
             except ValueError as e:
                 self._logger.error(f"Column #{row.row_id}. Skipping as an unknown error occurred. {str(e)}")
                 continue
@@ -253,6 +254,10 @@ class GjToubanAccess:
                 self._logger.debug(f"Student name empty. Likely empty row. Skipping.")
                 continue
 
+            # As of 202408 the max #assigned days for leader is statically determined as 'max_days_leader' for committee members.
+            # This is very adhoc.
+            _max_days_leader = max_days_leader if _responsibility_id == PersonResponsibility.COMMITTEE.value else 0
+
             person = PersonPlayer(
                 id =_family_id_in_sheet,
                 name =_student_fullname,
@@ -260,9 +265,10 @@ class GjToubanAccess:
                 phone_num = row.phone_emergency,
                 # 2024/08 'children_ids' attribute was originally created without the knowledge of how students/guardians are 
                 # grouped into a family info. Now that it's more known, 'children_ids' doesn't seem to be needed, hence
-                # setting 'None' here.
+                # setting 'None' here
                 children_ids = None,
-                role_id=_role_id
+                responsibility_id=_responsibility_id,
+                max_days_leader=_max_days_leader
             )
             self._logger.debug(f"person ID: {person.id}, name: {person.name}")
             persons.append(person)
@@ -270,34 +276,35 @@ class GjToubanAccess:
         return PersonBank(persons)
 
     @abstractmethod
-    def match_role(self, role=""):
+    def match_responsibility(self, responsibility=""):
         raise NotImplementedError()
 
 
 class GjToubanAccess2024(GjToubanAccess):
-    def match_role(self, role=""):
+    def match_responsibility(self, responsibility=""):
         """
         @description: (Overriding abstract method)
+        @rtype: int, 
         @raise ValueError
         """
-        _role_id = -1
-        if ((role == PersonPlayer.TYPE_OBLIGATION_GAKYU_COMMITEE) or
-            (role == PersonPlayer.TYPE_OBLIGATION_GYOJI_COMMITEE) or
-            (role == PersonPlayer.TYPE_OBLIGATION_TOBAN_COMMITEE) or
-            (role == PersonPlayer.TYPE_OBLIGATION_UNDOKAI_COMMITEE) or 
-            (role == PersonPlayer.TYPE_OBLIGATION_UNEI_COMMITEE)
+        _responsibility_id = -1
+        if ((responsibility == PersonPlayer.TYPE_OBLIGATION_GAKYU_COMMITEE) or
+            (responsibility == PersonPlayer.TYPE_OBLIGATION_GYOJI_COMMITEE) or
+            (responsibility == PersonPlayer.TYPE_OBLIGATION_TOBAN_COMMITEE) or
+            (responsibility == PersonPlayer.TYPE_OBLIGATION_UNDOKAI_COMMITEE) or 
+            (responsibility == PersonPlayer.TYPE_OBLIGATION_UNEI_COMMITEE)
             ):
-            _role_id = PersonRole.TOUBAN_EXEMPT.value
-        elif ((role == PersonPlayer.TYPE_OBLIGATION_TOSHO_COMMITEE) or
-              (role == PersonPlayer.TYPE_OBLIGATION_SAFETY_COMMITEE)
+            _responsibility_id = PersonResponsibility.TOUBAN_EXEMPT.value
+        elif ((responsibility == PersonPlayer.TYPE_OBLIGATION_TOSHO_COMMITEE) or
+              (responsibility == PersonPlayer.TYPE_OBLIGATION_SAFETY_COMMITEE)
               ):
-            _role_id = PersonRole.COMMITTEE.value
+            _responsibility_id = PersonResponsibility.COMMITTEE.value
         elif (
             # Handling of photo clue might be still NOT lucid as of 2024/08. 
             # Ref. https://groups.google.com/a/gjls.org/g/touban-group/c/8ikrmPQ15lk
-            (role == PersonPlayer.TYPE_OBLIGATION_PHOTOCLUE) or
-            (not role)):
-            _role_id = PersonRole.GENERAL.value
+            (responsibility == PersonPlayer.TYPE_OBLIGATION_PHOTOCLUE) or
+            (not responsibility)):
+            _responsibility_id = PersonResponsibility.GENERAL.value
         else:
-            raise ValueError(f"Obtained role '{role}' does NOT match any rule. TODO Tbd")
-        return _role_id
+            raise ValueError(f"Obtained responsibility '{responsibility}' does NOT match any rule. TODO Tbd")
+        return _responsibility_id
