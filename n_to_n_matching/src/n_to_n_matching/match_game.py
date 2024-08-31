@@ -104,7 +104,7 @@ class GjVolunteerAllocationGame(BaseGame):
         if not dates:
             dates = self._dates
         for d in dates:
-            self._log_date_content(d, msg_prefix="{}: ".format(msg_prefix))
+            self._log_date_content(d, msg_prefix="f{msg_prefix}: ")
 
     def _log_available_persons(self, dates, needed_leader, needed_committee, needed_general,
                                available_leader, available_committee, available_general):
@@ -239,14 +239,11 @@ class GjVolunteerAllocationGame(BaseGame):
                 fullybooked_workers.append(worker)
             elif max_days_incl_overbook == _occurrence_per_role:
                 overlybooked_workers.append(worker)
-            elif max_days_incl_overbook < this_person_allowance[self.ATTR_MAX_OCCURRENCE_PER_ROLE]:
-                raise ValueError("Person ID {} is assigned for '{}' days, which exceeds the limit assigned days={}. TODO Needs figured out".format(
-                    person_id, assigned_dates, max_days_incl_overbook))
+            elif max_days_incl_overbook < _occurrence_per_role:
+                raise ValueError(f"Person ID {person_id} is assigned for '{assigned_dates}' days, which exceeds the limit assigned days={max_days_incl_overbook}. TODO Needs figured out")
             else:
-                self._logger.warning("_occurrence_per_role = '{}' not falling under any criteria. Skipping for now.".format(
-                    _occurrence_per_role))
-            self._logger.info("PersonRole(worker.role_id): '{}', assigned_dates: '{}', _occurrence_per_role: '{}'".format(
-                PersonRole(worker.role_id), assigned_dates, _occurrence_per_role))
+                self._logger.warning(f"_occurrence_per_role = '{_occurrence_per_role}' not falling under any criteria. Skipping for now.")
+            self._logger.info(f"PersonRole(worker.role_id): '{PersonRole(worker.role_id)}', assigned_dates: '{assigned_dates}', _occurrence_per_role: '{_occurrence_per_role}'")
         self._log_persons_per_bookings(free_workers, fullybooked_workers, overlybooked_workers, msg_prefix="151")
         #if not free_workers:
         #    raise ValueError("All given persons are already assigned to the max number of dates")
@@ -351,8 +348,7 @@ class GjVolunteerAllocationGame(BaseGame):
             date = self._assign_day(date, person_bank, requirements, overbook=True)
 
     def _log_date_content(self, date, msg_prefix=""):
-        self._logger.debug("{} Date={} assignees stored. Leader: {}, Committee: {}, Non-commitee: {}".format(
-            msg_prefix, date.date, date.assignees_leader, date.assignees_committee, date.assignees_noncommittee))
+        self._logger.debug(f"{msg_prefix} Date={date.date} assignees stored. Leader: {date.assignees_leader}, Committee: {date.assignees_committee}, Non-commitee: {date.assignees_noncommittee}")
 
     def match(self, dates, person_bank, requirements=None, optimal=""):
         """
@@ -396,7 +392,7 @@ class GjVolunteerAllocationGame(BaseGame):
                 dates_lgtm.append(date)
             #dates_need_attention.remove(date)
             self._log_date_content(date, msg_prefix="AFTER assigning a day:")
-            self._logger.debug("AFTER assigning a day: All dates_need_attention={}\n\tdates_lgtm={}".format(dates_need_attention, dates_lgtm))
+            self._logger.debug(f"AFTER assigning a day: All dates_need_attention={dates_need_attention}\n\tdates_lgtm={dates_lgtm}")
         rest_dates_need_attention = list(set(dates_need_attention).difference(dates_lgtm))
         return dates_lgtm, rest_dates_need_attention
 
