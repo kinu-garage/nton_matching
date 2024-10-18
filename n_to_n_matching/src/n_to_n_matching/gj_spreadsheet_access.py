@@ -56,7 +56,7 @@ class GjRowEntity:
             raise ValueError(f"'row' object must be the type of SpreadsheetRow. Instead, {type(row)} was passed.")
         self._logger = GjUtil.get_logger(__name__, logger_obj)
         if not row:
-            self._logger.warn(f"'row' object is empty. Finishing creating an object without filling with the values.")
+            self._logger.warning(f"'row' object is empty. Finishing creating an object without filling with the values.")
             pass
         else:
             self._raw_row = row
@@ -241,6 +241,7 @@ class GjToubanAccess:
             responsibility = row.exempted_on
             _responsibility_id = -1
             try:
+                # TODO Assign role in addition to responsibility, for Tosho, Patrol.
                 _responsibility_id = self.match_responsibility(responsibility)
             except ValueError as e:
                 self._logger.error(f"Column #{row.row_id}. Skipping as an unknown error occurred. {str(e)}")

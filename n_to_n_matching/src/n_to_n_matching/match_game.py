@@ -155,13 +155,12 @@ class GjVolunteerAllocationGame(BaseGame):
         self._logger.info(f"{dates_attention =}\n{dates_lgtm =}")
         return dates_attention, dates_lgtm
 
-    def max_allowed_days_per_person(self, dates, workers):
+    def max_allowed_days_per_person(self, dates, workers: PersonBank):
         """
-        @summary:  Returning 2 sets of info for 3 kids of responsibilitys (leader, committee, generals):
+        @summary:  Returning 2 sets of info for 3 kinds of responsibilitys (leader, committee, generals):
             - max_*: Maximum number of times each person should be assigned to the correspondent responsibility in the given period.
             - unlucky_*: Number of persons who need to take on the correspondent responsibility once more than `max_*` number.
         @type dates: [n_to_n_matching.WorkDate]
-        @type workers: `PersonBank`
         @return: Dictionary structure should look like this:
             {
                 PersonResponsibility.LEADER: {ATTR_MAX_OCCURRENCE: max_leader, ATTR_UNLUCKY_PERSON_NUMS: unlucky_leaders},
@@ -171,9 +170,9 @@ class GjVolunteerAllocationGame(BaseGame):
         @raise ValueError: If not enough number of persons with a responsibility is given in `workers`.
         """
         def _debug_print_max_per_person(*args):
-            print("Debug:\t")
+            self._logger.debug("Debug:\t")
             for arg in args:
-                print(f'\t{arg=}')
+                self._logger.debug(f'\t{arg=}')
 
         # Find the total number of slots need to be filled in all `dates`.
         needed_leader, needed_committee, needed_general = GjUtil.total_slots_required(dates)
@@ -260,7 +259,7 @@ class GjVolunteerAllocationGame(BaseGame):
           - Case-b. (TODO needs figured out this case, which is also clarified in the inline comment section of the corresponding line.)
         """
         if not requirements:
-            self._logger.warn("Requirement was not passed. Using default.")
+            self._logger.warning("Requirement was not passed. Using default.")
             requirements = DateRequirement()        
         if (not isinstance(person, PersonPlayer)) or (not isinstance(date_wd, WorkDate)):
             raise TypeError(f"One of the args' type is incompatible. person: '{type(person)}', date_wd: '{type(WorkDate)}'")
@@ -333,7 +332,7 @@ class GjVolunteerAllocationGame(BaseGame):
         """
         self._logger.info(f"Began assigning {date.date =}")
         if not requirements:
-            self._logger.warn("Requirement was not passed. Using default.")
+            self._logger.warning("Requirement was not passed. Using default.")
             requirements = DateRequirement()
 
         # Fill in the assignee if a `date` doesn't have enough assignees.
@@ -363,7 +362,7 @@ class GjVolunteerAllocationGame(BaseGame):
         """
         self._logger.info(f"{requirements.interval_assigneddates_leader = }, {requirements.interval_assigneddates_commitee = }, {requirements.interval_assigneddates_general = }")
         if not requirements:
-            self._logger.warn("Requirement was not passed. Using default.")
+            self._logger.warning("Requirement was not passed. Using default.")
             requirements = DateRequirement()
 
         dates_need_attention = []
@@ -413,7 +412,7 @@ class GjVolunteerAllocationGame(BaseGame):
         return self._matching
 
     @classmethod
-    def create_from_dict_dates(cls, dates_prefs, clean=False):
+    def create_from_dict_dates(cls, dates_prefs, clean=False, logger_obj: logging.Logger=None):
         """
         @summary: Input data converter from text-based (dictionary in .yaml) format to Python format.
           Only required attribute in each element in `dates_prefs` is `date` (i.e. other attributes are optional).
@@ -432,10 +431,13 @@ class GjVolunteerAllocationGame(BaseGame):
         @rtype [WorkDate], DateRequirement
         @raise ValueError
         """
+        if not logger_obj:
+            logger_obj = GjUtil.get_logger
         if WorkDate.ATTR_SECTION not in dates_prefs:
             raise ValueError(f"A required section '{WorkDate.ATTR_SECTION}' in the input file is missing.")
 
-        print(f"{dates_prefs = }")
+        logger_obj.info(f"{dates_prefs = }")
+        # If date requirement is included in the input.
         if DateRequirement.ATTR_SECTION in dates_prefs:
             dates_dict = dates_prefs[DateRequirement.ATTR_SECTION]
             requirement = DateRequirement(
@@ -444,7 +446,7 @@ class GjVolunteerAllocationGame(BaseGame):
                 dates_dict.get(WorkDate.REQ_INTERVAL_ASSIGNEDDATES_GENERAL, -1),
             )
         else:
-            print(f"Requirement is missing. Moving on with default value.")
+            logger_obj.warning(f"Requirement is missing. Moving on with default value.")
             requirement = DateRequirement()
 
         _dates = [WorkDate(datestr=d[WorkDate.ATTR_DATE],

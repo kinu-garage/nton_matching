@@ -16,23 +16,17 @@
 
 import logging
 
-from n_to_n_matching.person_player import PersonResponsibility
+from n_to_n_matching.person_player import PersonBank, PersonResponsibility
 from n_to_n_matching.util import Util
 from n_to_n_matching.workdate_player import WorkDate
 
 
 class GjUtil:
     @staticmethod
-    def _get_logger():
-        """
-        @deprecated
-        """
-        return logging.getLogger(__name__)
-
-    @staticmethod
-    def get_logger(name_logger="", logger_obj=None):
+    def get_logger(name_logger="", logger_obj: logging.Logger=None):
         """
         @todo Remove this. This is made only as a tentative measure to avoid "not found" error after 'get_logger' is moved to n_to_n_matching.util.Util.
+        @rtype: logging.Logger
         """
         return Util.get_logger(name_logger, logger_obj)
 
@@ -74,10 +68,9 @@ class GjUtil:
         return assign_count, assigned_leader, assigned_committee, assigned_noncommittee
 
     @staticmethod
-    def total_persons_available(persons):
+    def total_persons_available(persons: PersonBank):
         """
         @summary: Returns the number in the requirement. Note this method only handles the static info, NOT reflecting the current state of instances.
-        @type persons: `PersonBank`
         @rtype int, int, int
         """
         avaialable_leader, avaialable_committee, avaialable_general, exempted = 0, 0, 0, 0
