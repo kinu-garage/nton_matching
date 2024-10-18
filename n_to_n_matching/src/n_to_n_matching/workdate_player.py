@@ -48,7 +48,7 @@ class WorkDate(Player):
                  assignee_noncommitee=None):
         """
         @param datestr: For now this needs to be "yyyy-mm-dd" format.
-        @type assignees: [GuardianPlayer]
+        @type assignees: [PersonPlayer]
         @param assignee_ids_commitee: Can be empty when a class instantiates.
         """
         super().__init__(datestr)

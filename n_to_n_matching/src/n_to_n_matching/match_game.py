@@ -107,9 +107,9 @@ class GjVolunteerAllocationGame(BaseGame):
             self._log_date_content(d, msg_prefix="f{msg_prefix}: ")
 
     def _log_available_persons(self, dates, needed_leader, needed_committee, needed_general,
-                               available_leader, available_committee, available_general):
-        self._logger.info("#dates {}\n\tneeded_leader {} needed_committee {} needed_general {}\n\tavailable_leader {} available_committee {} available_general {}".format(
-            len(dates), needed_leader, needed_committee, needed_general, available_leader, available_committee, available_general))
+                               available_committee, available_general):
+        self._logger.info("#dates {}\n\tneeded_leader {} needed_committee {} needed_general {}\n\tavailable_committee {} available_general {}".format(
+            len(dates), needed_leader, needed_committee, needed_general, available_committee, available_general))
 
     def _log_persons_per_bookings(
             self, free_workers,
@@ -163,7 +163,7 @@ class GjVolunteerAllocationGame(BaseGame):
         @type dates: [n_to_n_matching.WorkDate]
         @return: Dictionary structure should look like this:
             {
-                PersonResponsibility.LEADER: {ATTR_MAX_OCCURRENCE: max_leader, ATTR_UNLUCKY_PERSON_NUMS: unlucky_leaders},
+                PersonResponsibility.LEADER: {ATTR_MAX_OCCURREcNCE: max_leader, ATTR_UNLUCKY_PERSON_NUMS: unlucky_leaders},
                 PersonResponsibility.COMMITTEE: {ATTR_MAX_OCCURRENCE: max_committee, ATTR_UNLUCKY_PERSON_NUMS: unlucky_committees},
                 PersonResponsibility.GENERAL: {ATTR_MAX_OCCURRENCE: max_general, ATTR_UNLUCKY_PERSON_NUMS: unlucky_generals},
             }
@@ -177,39 +177,38 @@ class GjVolunteerAllocationGame(BaseGame):
         # Find the total number of slots need to be filled in all `dates`.
         needed_leader, needed_committee, needed_general = GjUtil.total_slots_required(dates)
         available_leader, available_committee, available_general, exempted = GjUtil.total_persons_available(workers)
-        if not all([available_leader, available_committee, available_general]):
-            raise ValueError("Any one of these must not be 0: available_leader={}, available_committee={}, available_general={}".format(
-                available_leader, available_committee, available_general))
-        self._log_available_persons(dates, needed_leader, needed_committee, needed_general, available_leader, available_committee, available_general)
+        if not all([available_committee, available_general]):
+            raise ValueError(f"Any one of these must not be 0: available_committee={available_committee}, available_general={available_general}")
+        self._log_available_persons(dates, needed_leader, needed_committee, needed_general, available_committee, available_general)
 
         try:
-            max_leader, unlucky_leaders = divmod(needed_leader, available_leader)
-            max_committee, unlucky_committees = divmod(needed_committee, available_committee)
-            max_general, unlucky_generals = divmod(needed_general, available_general)
+            # Calculating maximum stint per person (i.e. #days a person can take at maximum).
+            max_stint_leader, unlucky_leaders = divmod(needed_leader, available_committee)  # 20241018 IDK yet if 'divmod(needed_leader, available_committee)' is the right way to do this.
+            max_stint_committee, unlucky_committees = divmod(needed_committee, available_committee)
+            max_stint_general, unlucky_generals = divmod(needed_general, available_general)
         except ZeroDivisionError as e:
             raise ZeroDivisionError("Theres is at least one arg that is zero. {}".format(
-                _debug_print_max_per_person(max_leader, unlucky_leaders, max_committee, unlucky_committees, max_general, unlucky_generals))) from e
+                _debug_print_max_per_person(max_stint_leader, unlucky_leaders, max_stint_committee, unlucky_committees, max_stint_general, unlucky_generals))) from e
         max_allowance = {
             PersonResponsibility.LEADER: {
-                self.ATTR_MAX_OCCURRENCE_PER_responsibility: max_leader,
+                self.ATTR_MAX_OCCURRENCE_PER_responsibility: max_stint_leader,
                 self.ATTR_UNLUCKY_PERSON_NUMS: unlucky_leaders},
             PersonResponsibility.COMMITTEE: {
-                self.ATTR_MAX_OCCURRENCE_PER_responsibility: max_committee,
+                self.ATTR_MAX_OCCURRENCE_PER_responsibility: max_stint_committee,
                 self.ATTR_UNLUCKY_PERSON_NUMS: unlucky_committees},
             PersonResponsibility.GENERAL: {
-                self.ATTR_MAX_OCCURRENCE_PER_responsibility: max_general,
+                self.ATTR_MAX_OCCURRENCE_PER_responsibility: max_stint_general,
                 self.ATTR_UNLUCKY_PERSON_NUMS: unlucky_generals},
             }
         self._logger.info("max_allowance: {}".format(max_allowance))
         return max_allowance
 
-    def find_free_workers(self, persons, overbook_allowed_num=1):
+    def find_free_workers(self, persons: PersonBank, overbook_allowed_num=1):
         """
         @summary: Returns the set of persons who are not yet assigned required number of the times in the given period.
-        @type persons: PersonBank
         @param overbook_allowed_num: Number of times an overbooked person can take.
-        @rtype: [GuardianPlayer], [GuardianPlayer], [GuardianPlayer]
-        @return: 3 lists of `GuardianPlayer` instance, namely:
+        @rtype: [PersonPlayer], [PersonPlayer], [PersonPlayer]
+        @return: 3 lists of `PersonPlayer` instance, namely:
            - No assignment.
            - Fully assigned.
            - Assigned more than the allowance.

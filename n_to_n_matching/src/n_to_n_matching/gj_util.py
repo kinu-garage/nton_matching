@@ -78,13 +78,13 @@ class GjUtil:
             rid = value.responsibility_id
             if rid == PersonResponsibility.LEADER.value:
                 # As of 202408 the usecase to designate a person as a 'leader' in the tool's input data is deprecated.
-                # Here the logic is still kept alive as this decision for deprecation is still fluid.
-                avaialable_leader += 1
+                # In this 'if' clause for 'LEADER.value', which is kept for backward compatibility, the count increments for 'committee'.
+                # In the future this clause may be removed.
+                avaialable_committee += 1
             elif rid == PersonResponsibility.COMMITTEE.value:
                 # As of 202408 the logic to assign 'leader' is unclear (this needs to be asked for the domain expert).
                 # TODO For now all 'committee' member gets 1 leader value, which won't work for sure 
                 # once https://github.com/kinu-garage/nton_matching/issues/22 is addressed, hence this is temporary.
-                avaialable_leader += 1
                 avaialable_committee += 1
             elif rid == PersonResponsibility.GENERAL.value:
                 avaialable_general += 1
@@ -99,6 +99,7 @@ class GjUtil:
     def total_slots_required(dates):
         """
         @summary: Returns the number per each of 3 responsibility in order to cover all the dates in the arg.
+        @type dates: [WorkDate]
         @note This method only handles the static info, NOT reflecting the current state of instances.
         @rtype int, int, int
         """

@@ -47,11 +47,14 @@ class PersonPlayer(Player):
     TYPE_OBLIGATION_TOSHO_COMMITEE = "図書委員"
     TYPE_OBLIGATION_UNEI_COMMITEE = "運営関係者"
 
+    _ERRMSG_SHOULD_NOT_OVERWRITE = "`{}` should only be settable as an initial input and cannot be overwritten."
+
     def __init__(self,
                  name,
                  id,
                  email_addr,
                  phone_num,
+                 role_id,
                  responsibility_id=PersonResponsibility.GENERAL,
                  children_ids=[],
                  max_days_leader=0):
@@ -63,6 +66,7 @@ class PersonPlayer(Player):
        self.name = name
        self._email_addr = email_addr
        self._phone_num = phone_num
+       self._role_id = role_id
        self._responsibility_id = responsibility_id
        self._children_ids = children_ids
        self._last_assigned_date = None
@@ -74,7 +78,15 @@ class PersonPlayer(Player):
     
     @id.setter
     def id(self, val):
-        raise AttributeError("`id` should only be settable as an initial input and cannot be overwritten.")
+        raise AttributeError(self._ERRMSG_SHOULD_NOT_OVERWRITE.format("id"))
+
+    @property
+    def role_id(self):
+        return self._role_id
+    
+    @role_id.setter
+    def role_id(self, val):
+        raise AttributeError(self._ERRMSG_SHOULD_NOT_OVERWRITE.format("role_id"))
 
     @property
     def responsibility_id(self):
@@ -82,7 +94,7 @@ class PersonPlayer(Player):
     
     @responsibility_id.setter
     def responsibility_id(self, val):
-        raise AttributeError("`responsibility_id` should only be settable as an initial input and cannot be overwritten.")
+        raise AttributeError(self._ERRMSG_SHOULD_NOT_OVERWRITE.format("responsibility_id"))
 
     @property
     def last_assigned_date(self):
@@ -109,7 +121,7 @@ class PersonPlayer(Player):
 class PersonBank():
     def __init__(self, persons):
         """
-        @type persons: [GuardianPlayer]
+        @type persons: [PersonPlayer]
         @param persons: Input list will be converted as a dict.
         """
         self._persons = {}
