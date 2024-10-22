@@ -19,7 +19,7 @@ import openpyxl as pyxl
 from openpyxl.cell.cell import Cell as pyxl_Cell
 
 from n_to_n_matching.gj_util import GjUtil
-from n_to_n_matching.person_player import PersonBank, PersonPlayer, PersonResponsibility
+from n_to_n_matching.person_player import PersonBank, PersonPlayer, ResponsibilityLevel
 from n_to_n_matching.spreadsheet_access import SpreadsheetCell, SpreadsheetRow
 
 
@@ -79,6 +79,10 @@ class GjRowEntity:
                 cell_title = col_title_definition[cell.column]
             except KeyError as e:
                 self._logger.debug(f"Skipping this column. cell.column :{cell.column} is either not used or its definition not present in title definition.")                
+            # TODO Roles need special treatment; In the spreadsheet, roles are distributed in multiple columns and value of the cells in each col
+            #   are meant to be the date the person is assigned to each role. While this design makes sense from spreadsheet user's usecase,
+            #   it doesn't provide convenience for this tool's usecases.
+            #   To mitigate, add a special cell to the row object that conveys the type of role.
             ss_cell = SpreadsheetCell(cell, cell_title)
             ss_row.append(ss_cell)
 
@@ -257,7 +261,7 @@ class GjToubanAccess:
 
             # As of 202408 the max #assigned days for leader is statically determined as 'max_days_leader' for committee members.
             # This is very adhoc.
-            _max_days_leader = max_days_leader if _responsibility_id == PersonResponsibility.COMMITTEE.value else 0
+            _max_days_leader = max_days_leader if _responsibility_id == ResponsibilityLevel.COMMITTEE.value else 0
 
             person = PersonPlayer(
                 id =_family_id_in_sheet,
@@ -295,17 +299,17 @@ class GjToubanAccess2024(GjToubanAccess):
             (responsibility == PersonPlayer.TYPE_OBLIGATION_UNDOKAI_COMMITEE) or 
             (responsibility == PersonPlayer.TYPE_OBLIGATION_UNEI_COMMITEE)
             ):
-            _responsibility_id = PersonResponsibility.TOUBAN_EXEMPT.value
+            _responsibility_id = ResponsibilityLevel.TOUBAN_EXEMPT.value
         elif ((responsibility == PersonPlayer.TYPE_OBLIGATION_TOSHO_COMMITEE) or
               (responsibility == PersonPlayer.TYPE_OBLIGATION_SAFETY_COMMITEE)
               ):
-            _responsibility_id = PersonResponsibility.COMMITTEE.value
+            _responsibility_id = ResponsibilityLevel.COMMITTEE.value
         elif (
             # Handling of photo clue might be still NOT lucid as of 2024/08. 
             # Ref. https://groups.google.com/a/gjls.org/g/touban-group/c/8ikrmPQ15lk
             (responsibility == PersonPlayer.TYPE_OBLIGATION_PHOTOCLUE) or
             (not responsibility)):
-            _responsibility_id = PersonResponsibility.GENERAL.value
+            _responsibility_id = ResponsibilityLevel.GENERAL.value
         else:
             raise ValueError(f"Obtained responsibility '{responsibility}' does NOT match any rule. TODO Tbd")
         return _responsibility_id

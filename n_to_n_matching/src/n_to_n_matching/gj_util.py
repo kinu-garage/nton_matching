@@ -16,7 +16,7 @@
 
 import logging
 
-from n_to_n_matching.person_player import PersonBank, PersonResponsibility
+from n_to_n_matching.person_player import PersonBank, ResponsibilityLevel
 from n_to_n_matching.util import Util
 from n_to_n_matching.workdate_player import WorkDate
 
@@ -76,19 +76,19 @@ class GjUtil:
         avaialable_leader, avaialable_committee, avaialable_general, exempted = 0, 0, 0, 0
         for key, value in persons.persons.items():
             rid = value.responsibility_id
-            if rid == PersonResponsibility.LEADER.value:
+            if rid == ResponsibilityLevel.LEADER.value:
                 # As of 202408 the usecase to designate a person as a 'leader' in the tool's input data is deprecated.
                 # In this 'if' clause for 'LEADER.value', which is kept for backward compatibility, the count increments for 'committee'.
                 # In the future this clause may be removed.
                 avaialable_committee += 1
-            elif rid == PersonResponsibility.COMMITTEE.value:
+            elif rid == ResponsibilityLevel.COMMITTEE.value:
                 # As of 202408 the logic to assign 'leader' is unclear (this needs to be asked for the domain expert).
                 # TODO For now all 'committee' member gets 1 leader value, which won't work for sure 
                 # once https://github.com/kinu-garage/nton_matching/issues/22 is addressed, hence this is temporary.
                 avaialable_committee += 1
-            elif rid == PersonResponsibility.GENERAL.value:
+            elif rid == ResponsibilityLevel.GENERAL.value:
                 avaialable_general += 1
-            elif rid == PersonResponsibility.TOUBAN_EXEMPT.value:
+            elif rid == ResponsibilityLevel.TOUBAN_EXEMPT.value:
                 exempted += 1
             else:
                 #TODO print error

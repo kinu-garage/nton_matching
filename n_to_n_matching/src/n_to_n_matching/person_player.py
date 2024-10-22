@@ -20,7 +20,7 @@ from enum import Enum
 from matching.players import Player
 
 
-class PersonResponsibility(Enum):
+class ResponsibilityLevel(Enum):
     LEADER = 1  # 202408 Deprecated. There may not be many cases where someone in the input data is designated as a 'leader'.
     COMMITTEE = 2
     GENERAL = 3
@@ -35,9 +35,6 @@ class PersonPlayer(Player):
     ATTR_PHONE = "phone"
     ATTR_CHILDREN = "children"
     ATTR_responsibility_id = "responsibility_id"
-    TYPE_OBLIGATION_LEADER = "leader"
-    TYPE_OBLIGATION_COMMITEE = "commitee"
-    TYPE_OBLIGATION_NONCOMMITEE = "non-commitee"
     TYPE_OBLIGATION_GAKYU_COMMITEE = "学級委員"
     TYPE_OBLIGATION_GYOJI_COMMITEE = "行事委員"
     TYPE_OBLIGATION_PHOTOCLUE = "カメラ担当"
@@ -55,7 +52,7 @@ class PersonPlayer(Player):
                  email_addr,
                  phone_num,
                  role_id,
-                 responsibility_id=PersonResponsibility.GENERAL,
+                 responsibility_id=ResponsibilityLevel.GENERAL,
                  children_ids=[],
                  max_days_leader=0):
        """

@@ -15,7 +15,7 @@
 # limitations under the License.
 
 from n_to_n_matching.match_game import GjVolunteerAllocationGame
-from n_to_n_matching.person_player import PersonResponsibility
+from n_to_n_matching.person_player import ResponsibilityLevel
 from n_to_n_matching.gj_spreadsheet_access import GjToubanAccess2024 as GTA
 from n_to_n_matching.workdate_player import DateRequirement, WorkDate
 
@@ -30,7 +30,7 @@ def fixture_persons_1():
             "children": {
               "child_id": "000001",
               "child_id": "000002"},
-            "responsibility_id": PersonResponsibility.LEADER.value
+            "responsibility_id": ResponsibilityLevel.LEADER.value
         },
         {
             "id": 2,
@@ -39,7 +39,7 @@ def fixture_persons_1():
             "email": "2@dot.com.dummy",
             "children": {
               "child_id": "000003"},
-            "responsibility_id": PersonResponsibility.COMMITTEE.value
+            "responsibility_id": ResponsibilityLevel.COMMITTEE.value
         },
         {
             "id": 3,
@@ -50,7 +50,7 @@ def fixture_persons_1():
                 "child_id": "000004",
                 "child_id": "000005",
                 "child_id": "000006"},
-            "responsibility_id": PersonResponsibility.COMMITTEE.value
+            "responsibility_id": ResponsibilityLevel.COMMITTEE.value
         },
         {
             "id": 4,
@@ -59,7 +59,7 @@ def fixture_persons_1():
             "email": "4@dot.com.dummy",
             "children": {
               "child_id": "000007"},
-            "responsibility_id": PersonResponsibility.LEADER.value
+            "responsibility_id": ResponsibilityLevel.LEADER.value
         },
         {
             "id": 5,
@@ -71,7 +71,7 @@ def fixture_persons_1():
                 "child_id": "00009",
                 "child_id": "000010",
                 "child_id": "000011"},
-            "responsibility_id": PersonResponsibility.COMMITTEE.value
+            "responsibility_id": ResponsibilityLevel.COMMITTEE.value
         },
         {
             "id": 6,
@@ -80,7 +80,7 @@ def fixture_persons_1():
             "email": "6@dot.com.dummy",
             "children": {
                 "child_id": "000012"},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 7,
@@ -90,7 +90,7 @@ def fixture_persons_1():
             "children": {
                 "child_id": "000013",
                 "child_id": "000014"},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 8,
@@ -101,7 +101,7 @@ def fixture_persons_1():
                 "child_id": "000015",
                 "child_id": "000016",
                 "child_id": "000017",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 9,
@@ -112,7 +112,7 @@ def fixture_persons_1():
                 "child_id": "000018",
                 "child_id": "000019",
                 "child_id": "000020",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 10,
@@ -124,7 +124,7 @@ def fixture_persons_1():
                 "child_id": "000022",
                 "child_id": "000023",
                 "child_id": "000024"},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
     ]
 
@@ -139,7 +139,7 @@ def fixture_persons_2():
               "child_id": "000022",
               "child_id": "000023",
               "child_id": "000024",},
-            "responsibility_id": PersonResponsibility.LEADER.value
+            "responsibility_id": ResponsibilityLevel.LEADER.value
         },
         {
             "id": 12,
@@ -148,7 +148,7 @@ def fixture_persons_2():
             "email": "12@dot.com.dummy",
             "children": {
                 "child_id": "000025",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 13,
@@ -159,7 +159,7 @@ def fixture_persons_2():
               "child_id": "000026",
               "child_id": "000027",
               "child_id": "000028",},
-            "responsibility_id": PersonResponsibility.COMMITTEE.value
+            "responsibility_id": ResponsibilityLevel.COMMITTEE.value
         },
         {
             "id": 14,
@@ -169,7 +169,7 @@ def fixture_persons_2():
             "children": {
                 "child_id": "000029",
                 "child_id": "000030",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 15,
@@ -181,7 +181,7 @@ def fixture_persons_2():
                 "child_id": "000032",
                 "child_id": "000033",
                 "child_id": "000034",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
     ])
     return persons
@@ -197,7 +197,7 @@ def fixture_persons_3():
             "children": {
               "child_id": "000035",
             },
-            "responsibility_id": PersonResponsibility.LEADER.value
+            "responsibility_id": ResponsibilityLevel.LEADER.value
         },
         {
             "id": 17,
@@ -207,7 +207,7 @@ def fixture_persons_3():
             "children": {
               "child_id": "000036",
               "child_id": "000037",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 18,
@@ -218,7 +218,7 @@ def fixture_persons_3():
               "child_id": "000038",
               "child_id": "000039",
               "child_id": "000040",},
-            "responsibility_id": PersonResponsibility.COMMITTEE.value
+            "responsibility_id": ResponsibilityLevel.COMMITTEE.value
         },
         {
             "id": 19,
@@ -228,7 +228,7 @@ def fixture_persons_3():
             "children": {
               "child_id": "000040",
               "child_id": "000041",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 20,
@@ -238,7 +238,7 @@ def fixture_persons_3():
             "children": {
               "child_id": "000042",
               "child_id": "000043",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 21,
@@ -250,7 +250,7 @@ def fixture_persons_3():
               "child_id": "000045",
               "child_id": "000046",
             },
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 22,
@@ -261,7 +261,7 @@ def fixture_persons_3():
               "child_id": "000047",
               "child_id": "000048",
               "child_id": "000049",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 23,
@@ -270,7 +270,7 @@ def fixture_persons_3():
             "email": "23@dot.com.dummy",
             "children": {
               "child_id": "000050",},
-            "responsibility_id": PersonResponsibility.COMMITTEE.value
+            "responsibility_id": ResponsibilityLevel.COMMITTEE.value
         },
         {
             "id": 24,
@@ -280,7 +280,7 @@ def fixture_persons_3():
             "children": {
               "child_id": "000051",
               "child_id": "000052",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 25,
@@ -290,7 +290,7 @@ def fixture_persons_3():
             "children": {
               "child_id": "000053",
               "child_id": "000054",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 26,
@@ -300,7 +300,7 @@ def fixture_persons_3():
             "children": {
               "child_id": "000055",
               "child_id": "000056",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 27,
@@ -310,7 +310,7 @@ def fixture_persons_3():
             "children": {
               "child_id": "000057",
               "child_id": "000058",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 28,
@@ -319,7 +319,7 @@ def fixture_persons_3():
             "email": "28@dot.com.dummy",
             "children": {
               "child_id": "000059",},
-            "responsibility_id": PersonResponsibility.COMMITTEE.value
+            "responsibility_id": ResponsibilityLevel.COMMITTEE.value
         },
         {
             "id": 29,
@@ -330,7 +330,7 @@ def fixture_persons_3():
               "child_id": "000060",
               "child_id": "000061",
               "child_id": "000062",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 30,
@@ -341,7 +341,7 @@ def fixture_persons_3():
               "child_id": "000063",
               "child_id": "000064",
               "child_id": "000065",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 31,
@@ -353,7 +353,7 @@ def fixture_persons_3():
               "child_id": "000067",
               "child_id": "000068",
             },
-            "responsibility_id": PersonResponsibility.COMMITTEE.value
+            "responsibility_id": ResponsibilityLevel.COMMITTEE.value
         },
         {
             "id": 32,
@@ -364,7 +364,7 @@ def fixture_persons_3():
               "child_id": "000069",
               "child_id": "000070",
               "child_id": "000071",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 33,
@@ -373,7 +373,7 @@ def fixture_persons_3():
             "email": "33@dot.com.dummy",
             "children": {
               "child_id": "000072",},
-            "responsibility_id": PersonResponsibility.COMMITTEE.value
+            "responsibility_id": ResponsibilityLevel.COMMITTEE.value
         },
         {
             "id": 34,
@@ -383,7 +383,7 @@ def fixture_persons_3():
             "children": {
               "child_id": "000073",
               "child_id": "000074",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
         {
             "id": 35,
@@ -392,7 +392,7 @@ def fixture_persons_3():
             "email": "35@dot.com.dummy",
             "children": {
               "child_id": "000075",},
-            "responsibility_id": PersonResponsibility.GENERAL.value
+            "responsibility_id": ResponsibilityLevel.GENERAL.value
         },
     ])
     return persons
