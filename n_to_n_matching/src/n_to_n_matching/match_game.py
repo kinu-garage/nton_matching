@@ -431,7 +431,7 @@ class GjVolunteerAllocationGame(BaseGame):
         @raise ValueError
         """
         if not logger_obj:
-            logger_obj = GjUtil.get_logger
+            logger_obj = GjUtil.get_logger()
         if WorkDate.ATTR_SECTION not in dates_prefs:
             raise ValueError(f"A required section '{WorkDate.ATTR_SECTION}' in the input file is missing.")
 
@@ -475,6 +475,7 @@ class GjVolunteerAllocationGame(BaseGame):
                 name=p[PersonPlayer.ATTR_NAME],
                 email_addr = p[PersonPlayer.ATTR_EMAIL],
                 phone_num = p[PersonPlayer.ATTR_PHONE],
+                #role_id=p[PersonPlayer.ATTR_ROLE_ID],  # TODO 20241022 This 'role_id' may not be yet added in the input data. Added here just to pass a test.
                 children_ids = p[PersonPlayer.ATTR_CHILDREN],
                 responsibility_id=_responsibility_id
             )

@@ -30,10 +30,11 @@ class ResponsibilityLevel(Enum):
 
 class PersonPlayer(Player):
     ATTR_ID = "id"
+    ATTR_CHILDREN = "children"
     ATTR_EMAIL = "email"
     ATTR_NAME = "name"
     ATTR_PHONE = "phone"
-    ATTR_CHILDREN = "children"
+    ATTR_ROLE_ID = "role_id"
     ATTR_responsibility_id = "responsibility_id"
     TYPE_OBLIGATION_GAKYU_COMMITEE = "学級委員"
     TYPE_OBLIGATION_GYOJI_COMMITEE = "行事委員"
@@ -51,14 +52,17 @@ class PersonPlayer(Player):
                  id,
                  email_addr,
                  phone_num,
-                 role_id,
                  responsibility_id=ResponsibilityLevel.GENERAL,
                  children_ids=[],
-                 max_days_leader=0):
+                 max_days_leader=0,
+                 role_id=-1):
        """
-       @param responsibility_id: Any of `Guardianresponsibility` enum item.
+       @param responsibility_id: Any of `ResponsibilityLevel` enum item.
+       @param role_id: -1 is equal to a role ID not being set.
        """
        super().__init__(name)  # For the rest of __init__, assigning `name` can be skipped because it's done in super class.
+       if not isinstance(id, int):
+           raise ValueError(f"'id' must be int. Got {type(id)}")
        self._id = id
        self.name = name
        self._email_addr = email_addr

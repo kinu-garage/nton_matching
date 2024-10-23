@@ -165,7 +165,9 @@ class GjToubanAccess:
         raise LookupError(f"Requested sheet '{sheet_name}' not found in the given workbook obj.")
 
     def get_a_spread_sheet(self, path_xls, sheet_name=MASTERSHEET_2024):
-        wb = pyxl.load_workbook(path_xls)
+        # 'data_only=True' is needed in order to read a value from each cell, not the macro formula.
+        # See https://stackoverflow.com/a/35624928/577001
+        wb = pyxl.load_workbook(path_xls, data_only=True)
         sheet = self.get_a_sheet_by_name(wb, sheet_name)
         if not sheet:
             raise ValueError("In the workbook '{}', no sheet found that has the name '{}'".format(
@@ -185,7 +187,7 @@ class GjToubanAccess:
 
     def get_touban_master_sheet(self, path_xls, sheet_name=MASTERSHEET_2024):
         if not path_xls:
-            raise ValueErrorf("Either/Both args 'path_xls' and/or 'sheet_struct' is empty.")
+            raise ValueError("Either/Both args 'path_xls' and/or 'sheet_struct' is empty.")
         sheet = self.get_a_spread_sheet(path_xls, sheet_name)
         return sheet
 
@@ -233,6 +235,10 @@ class GjToubanAccess:
         persons = []
         # Read .xls file into a Python objects
         rows_xls_obj = self.get_touban_master_sheet(path_to_xls)
+        # Each row should obtain the ID number from a cell in each row in the spreadsheet,
+        # but how reliably maintained the ID in the spreadsheet is unknown. So here
+        # maintaining ID as well. This is just a backup.
+        _row_count = 1
         # Parse each row object, create 'PersonPlayer' object per each person.
         for row_pyxl in rows_xls_obj:
             # If the row is title, set title flag.
@@ -251,7 +257,11 @@ class GjToubanAccess:
                 self._logger.error(f"Column #{row.row_id}. Skipping as an unknown error occurred. {str(e)}")
                 continue
 
-            _family_id_in_sheet = row.id_in_sheet
+            if row.id_in_sheet:
+               _family_id_in_sheet = int(row.id_in_sheet)
+            else:
+                _family_id_in_sheet = _row_count
+            self._logger.debug(f"_family_id_in_sheet: {_family_id_in_sheet}")
 
             try:
                 _student_fullname = row.person_name
@@ -268,6 +278,7 @@ class GjToubanAccess:
                 name =_student_fullname,
                 email_addr = row.email_emergency,
                 phone_num = row.phone_emergency,
+                role_id=row.exempted_on,  # TODO Not fully sure if 'exempted_on' is the correct selection.
                 # 2024/08 'children_ids' attribute was originally created without the knowledge of how students/guardians are 
                 # grouped into a family info. Now that it's more known, 'children_ids' doesn't seem to be needed, hence
                 # setting 'None' here
@@ -277,6 +288,7 @@ class GjToubanAccess:
             )
             self._logger.debug(f"person ID: {person.id}, name: {person.name}")
             persons.append(person)
+            _row_count += 1
         self._logger.debug(f"Persons: {persons}, size of persons: {len(persons)}")
         return PersonBank(persons)
 

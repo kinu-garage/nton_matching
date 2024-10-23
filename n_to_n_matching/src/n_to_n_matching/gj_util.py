@@ -44,7 +44,7 @@ class GjUtil:
         if not logger:
             logger = GjUtil.get_logger()
         if (not isinstance(person_id, int)) or (not isinstance(dates[0], WorkDate)):
-            raise TypeError(f"One of the args' type is incompatible. person_id: '{type(person_id)}' (value: '{person_id}'), date[0]: '{type(dates[0])}' (value: {dates[0]})")
+            raise TypeError(f"One of the args' type is incompatible.\n\tperson_id: '{type(person_id)}' (value: '{person_id}')\n\tdate[0]: '{type(dates[0])}' (value: {dates[0]})")
 
         assign_count = 0
         def count_assigned(person_id, persons, countednum):
