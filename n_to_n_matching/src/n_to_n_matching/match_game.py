@@ -22,7 +22,7 @@ from typing import Dict, List, Tuple
 from matching import BaseGame
 from matching.exceptions import PlayerExcludedWarning
 
-from gj.responsibility import Responsibility, ResponsibilityLevel
+from gj.responsibility import Committeer, GenGuardian, Leader, Responsibility, ResponsibilityLevel
 from gj.requirements import DateRequirement
 from gj.role import Role, Roles_Definition
 from gj.util import GjUtil
@@ -188,7 +188,7 @@ Responsibilities: {Responsibility.str_responsibilities(person.responsibilities)}
             date: WorkDate,
             person_bank: PersonBank,
             requirements: DateRequirement,
-            responsibility_id,
+            responsibility_id: ResponsibilityLevel,
             req_space_days: int,
             overbook: bool=False) -> WorkDate:
         """
@@ -246,11 +246,11 @@ Responsibilities: {Responsibility.str_responsibilities(person.responsibilities)}
             # Maybe a bit unintuitive but passing a value via enum subclass is a valid way to access
             # a value of a member of an enum class https://realpython.com/python-enum/#accessing-enumeration-members
             req_space_days = -1
-            if (resp == ResponsibilityLevel.LEADER.value):
+            if (resp == ResponsibilityLevel.LEADER):
                 req_space_days = requirements.interval_assigneddates_leader
-            elif (resp == ResponsibilityLevel.COMMITTEE.value):
+            elif (resp == ResponsibilityLevel.COMMITTEE):
                 req_space_days = requirements.interval_assigneddates_commitee
-            elif (resp == ResponsibilityLevel.GENERAL.value):
+            elif (resp == ResponsibilityLevel.GENERAL):
                 req_space_days = requirements.interval_assigneddates_general
             else:
                 raise RuntimeError(f"{resp =} is out of scope of handling.")

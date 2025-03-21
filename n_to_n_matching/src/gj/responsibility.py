@@ -49,9 +49,9 @@ class Responsibility(ABC):
     def id(self) -> ResponsibilityLevel:
         return self._id
 
-    @id.setter
-    def id(self, val: ResponsibilityLevel):
-        raise NotImplementedError("responsibility ID should not be settable after initialization.")
+    #@id.setter
+    #def id(self, val: ResponsibilityLevel):
+    #    raise NotImplementedError("responsibility ID should not be settable after initialization.")
 
     @staticmethod 
     def str_responsibilities(responsibilities) -> str:

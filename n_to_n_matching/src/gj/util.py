@@ -244,7 +244,7 @@ Ignoring {person_id=}, Person: {person}.")
 
     @staticmethod
     def find_free_workers_per_responsibility(
-            responsibility,
+            responsibility_id: RespLvl,
             dates: List[WorkDate],
             persons_bank: PersonBank,
             overbook_allowed_num=1,
@@ -258,17 +258,40 @@ Ignoring {person_id=}, Person: {person}.")
         
         persons = []
         for pid, pobj in persons_bank.persons.items():
-            logger.debug(f"{pid=}, {pobj=}, {responsibility=}")
-            for resp_person in pobj.responsibilities:
-                logger.debug(f" responsibility ID: {resp_person.id}")
-                if responsibility == resp_person.id:
-                    logger.debug(f"Requested responsibility ID {resp_person.id} found in '{pid=}'")
+            logger.debug(f"DEBUG 192 {pid=}, {pobj=}, requested resp ID: {responsibility_id}")
+            for resp_of_a_person in pobj.responsibilities:
+                logger.debug(f"194 Required resp ID: {responsibility_id} (type of {type(responsibility_id)}) given person's responsibility ID: {resp_of_a_person} (type of {type(resp_of_a_person)})")
+                _wanted_found = False
+
+                # TODO This is VERY adhoc. Better solution is preferred.
+                # Problem aimed: In the input data, "Leader" only exists in a requirement of the days
+                #   (i.e. in the input data, no person is defined as "Leader". This would result in
+                #   a leader never been assigned with the implementations where a leader can be assigned
+                #   only when the person's responsibility level is also a leader.
+                # Proposed solution: Only when the required responsibility is "Leader AND when a person's responsibility in the intput data is "COMMITTEE",
+                #   replace the person's responsibility level with a leader.
+                #   The replaced responsibility level must be reverted at the end of the loop.
+                _org_resp_of_a_person = resp_of_a_person
+                if (responsibility_id == RespLvl.LEADER) and (resp_of_a_person.id == RespLvl.COMMITTEE):
+                    resp_of_a_person = Leader()
+                    logger.debug(f"193 Required resp is '{RespLvl.LEADER}'. Person's responsibility is overwritten as {resp_of_a_person}")
+
+                if responsibility_id == resp_of_a_person.id:
+                    logger.debug(f"195 Requested responsibility ID {resp_of_a_person} found in '{pid=}'")
                     persons.append(pobj)
+                    _wanted_found = True
+
+                # Reverting temp resp level set earlier in the for loop. This can always be done regardless.
+                resp_of_a_person = _org_resp_of_a_person
+
+                if _wanted_found:
                     break
         
+        logger.debug("197 max_allowance={}, responsibility: {}".format(persons_bank.max_allowance, responsibility_id))
+        _allowance_of_responsibility = persons_bank.max_allowance[responsibility_id]
         return GjUtil.find_free_workers(dates,
                                         persons,
-                                        persons_bank.max_allowance[responsibility],
+                                        _allowance_of_responsibility,
                                         overbook_allowed_num=overbook_allowed_num,
                                         logger=logger)
 
