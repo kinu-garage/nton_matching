@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import logging
+from typing import List
 
 from matching import ManyToManyMatching
 
@@ -28,14 +29,15 @@ class GjVolunteerMatching(ManyToManyMatching):
     """
     _KEY_DATE = "date"
     _KEY_PERSON_ID = "person_id"
-    _KEY_ROLE_ID = "role_id"
+    _KEY_responsibility_id = "responsibility_id"
+
     def __init__(self, dates_lgtm, dates_failed, person_bank=None, max_allowance=None):
         """
         @type dates_lgtm: dict
         @param dates_lgtm: needs the following keys:
            - "date"
            - "guardian_id"
-           - "role_id"
+           - "responsibility_id"
         @type dates_failed: dict
         @type person_bank: PersonBank
         @type max_allowance: dict  (What `GjVolunteerAllocationGame.max_allowed_days_per_person` returns.)
@@ -92,9 +94,8 @@ class GjVolunteerMatching(ManyToManyMatching):
         self._max_allowance = val
 
     @staticmethod
-    def dates_list_to_dict(list_dates):
+    def dates_list_to_dict(list_dates: List[WorkDate]):
         """
-        @type list_dates: [WorkDate]
         @rtype: dict
         @return: Example format:
            {

@@ -15,11 +15,29 @@
 # limitations under the License.
 
 import datetime
+import logging
 import urllib
 import yaml
 
 
 class Util:
+    @staticmethod
+    def get_logger(name_logger="", logger_obj: logging.Logger=None) -> logging.Logger:
+        if not name_logger:
+            name_logger = __name__
+        if logger_obj:
+            return logger_obj
+        logger = logging.getLogger(name_logger)
+        _stream_handler = logging.StreamHandler()
+        _stream_handler.setLevel(logging.INFO)
+        _stream_format = logging.Formatter('%(name)s - %(levelname)s: %(message)s')
+        _stream_handler.setFormatter(_stream_format)
+        # TODO For some reason, setting the log level in a handler herelogger_obj
+        # doesn't seem to take effect. So setting basicConfig.
+        logging.basicConfig(level=logging.INFO)
+        #logger.addHandler(_stream_handler)
+        return logger
+    
     @staticmethod
     def read_yaml_to_dict(path_prefix, filename):
         """

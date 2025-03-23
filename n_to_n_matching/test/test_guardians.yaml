@@ -5,14 +5,14 @@ guardian_id: 1
    - children:
       - child_id: 1111
       - child_id: 1112
-   - role_id: 1  # 1: commitee, 2: parent
+   - responsibility_id: 1  # 1: commitee, 2: parent
 guardian_id: 2
    - name: "guardian2-name"
    - phone: 000-000-0000
    - email: 2@dot.com.dummy
    - children:
       - child_id: 1113
-   - role_id: 2
+   - responsibility_id: 2
 guardian_id: 3
    - name: "guardian3-name"
    - phone: 000-000-0000
@@ -21,14 +21,14 @@ guardian_id: 3
       - child_id: 1114
       - child_id: 1115
       - child_id: 1116
-   - role_id: 1
+   - responsibility_id: 1
 guardian_id: 4
    - name: "guardian4-name"
    - phone: 000-000-0000
    - email: 4@dot.com.dummy
    - children:
       - child_id: 1117
-   - role_id: 2
+   - responsibility_id: 2
 guardian_id: 5
    - name: "guardian5-name"
    - phone: 000-000-0000
@@ -36,14 +36,14 @@ guardian_id: 5
    - children:
       - child_id: 1118
       - child_id: 1119
-   - role_id: 1
+   - responsibility_id: 1
 guardian_id: 6
    - name: "guardian6-name"
    - phone: 000-000-0000
    - email: 6@dot.com.dummy
    - children:
       - child_id: 1120
-   - role_id: 2
+   - responsibility_id: 2
 guardian_id: 7
    - name: "guardian7-name"
    - phone: 000-000-0000
@@ -52,7 +52,7 @@ guardian_id: 7
       - child_id: 1121
       - child_id: 1122
       - child_id: 1123
-   - role_id: 2
+   - responsibility_id: 2
 guardian_id: 8
    - name: "guardian8-name"
    - phone: 000-000-0000
@@ -60,7 +60,7 @@ guardian_id: 8
    - children:
       - child_id: 1124
       - child_id: 1125
-   - role_id: 2
+   - responsibility_id: 2
    
    
    

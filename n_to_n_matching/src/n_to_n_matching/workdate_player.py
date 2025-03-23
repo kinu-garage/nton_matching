@@ -15,13 +15,20 @@
 # limitations under the License.
 
 from datetime import date
+from typing import List, Tuple
 
 from matching.players import Player
 
+from gj.responsibility import Responsibility
+from gj.responsibility import ResponsibilityLevel as RespLvl
+from n_to_n_matching.person_player import PersonPlayer
 from n_to_n_matching.util import Util
 
 
 class WorkDate(Player):
+    """
+    @summary: Describes the requirement for a single day.
+    """
     # Attiribute in text (e.g. .yaml) input file 
     ATTR_SECTION = "Dates"  # Key in the input file.
     ATTR_DATE = "date"
@@ -32,6 +39,7 @@ class WorkDate(Player):
     ATTR_LIST_ASSIGNED_LEADER = "assignees_leader"
     ATTR_LIST_ASSIGNED_COMMITTEE = "assignees_committee"
     ATTR_LIST_ASSIGNED_GENERAL = "assignees_general"
+    ATTR_DUTY_TYPE = "duty_type"
 
     REQ_INTERVAL_ASSIGNEDDATES_LEADER = "req_interval_assigneddates_leader"
     REQ_INTERVAL_ASSIGNEDDATES_COMMITTE = "req_interval_assigneddates_commitee"
@@ -43,13 +51,12 @@ class WorkDate(Player):
                  req_num_committee=3,
                  req_num_leader=1,
                  req_num_noncommittee=2,
-                 assignee_leader=None,
-                 assignee_commitee=None,
-                 assignee_noncommitee=None):
+                 assignee_leader: List[PersonPlayer]=None,
+                 assignee_commitee: List[PersonPlayer]=None,
+                 assignee_noncommitee: List[PersonPlayer]=None):
         """
         @param datestr: For now this needs to be "yyyy-mm-dd" format.
-        @type assignees: [GuardianPlayer]
-        @param assignee_ids_commitee: Can be empty when a class instantiates.
+        @type assignees: [PersonPlayer] TBD this no longer exists?
         """
         super().__init__(datestr)
         # type: datetime.date
@@ -98,25 +105,22 @@ class WorkDate(Player):
     def assignees_committee(self):
         return self._assignees
 
-    @assignees_committee.setter
-    def assignees_committee(self, val):
-        self._assignees = val
+    def assignee_committee(self, val: PersonPlayer):
+        self._assignees.append(val)
 
     @property
     def assignees_noncommittee(self):
         return self._assignees_noncommittee
 
-    @assignees_noncommittee.setter
-    def assignees_noncommittee(self, val):
-        self._assignees_noncommittee = val
+    def assignee_noncommittee(self, val: PersonPlayer):
+        self._assignees_noncommittee.append(val)
 
     @property
-    def assignees_leader(self):
+    def assignees_leader(self: List[PersonPlayer]):
         return self._assignees_leader
 
-    @assignees_leader.setter
-    def assignees_leader(self, val):
-        self._assignees_leader = val
+    def assignee_leader(self, val: PersonPlayer):
+        self._assignees_leader.append(val)
 
     @property
     def req_num_assignee_committee(self):
@@ -149,56 +153,47 @@ class WorkDate(Player):
         @rtype: int
         """
         return len(self.assignees_leader) + len(self.assignees_committee) + len(self.assignees_noncommittee)
+
+    def eval_enough_assignees(self) -> Tuple[bool, bool, bool]:
+        """
+        @deprecated: Recommended to use PersonPlayer._eval_enough_assignees instead.
+        @summary Returns eval result if a given `date` has enough numbers of assignees.
+            
+        @type date: n_to_n_matching.WorkDate
+        @rtype: bool, bool, bool
+        @return: Return 3 boolean values of:
+            1. True/False whether the number of retval-1 meets the requirement.
+            2. True/False whether the number of retval-2 meets the requirement.            
+        """
+        _enough_leaders = len(self.assignees_leader) == self.req_num_leader
+        _enough_committee = len(self.assignees_committee) == self.req_num_assignee_committee
+        _enough_noncommittee = len(self.assignees_noncommittee) == self.req_num_assignee_noncommittee
+        return _enough_leaders, _enough_committee, _enough_noncommittee
+
+    def assign_responsibility(self, responsibility: Responsibility, player: PersonPlayer):
+        if responsibility == RespLvl.LEADER.value:
+            self.assignee_leader(player)
+        elif responsibility == RespLvl.COMMITTEE.value:
+            self.assignee_committee(player)
+        elif responsibility == RespLvl.GENERAL.value:
+            self.assignee_noncommittee(player)
+        else:
+            raise ValueError(f"Rresponsibility: {responsibility=} not recognized")
+
+    def eval_enough_assignees(self, responsibility: Responsibility):
+        if responsibility == RespLvl.LEADER.value:
+            return len(self.assignees_leader) == self.req_num_leader
+        elif responsibility == RespLvl.COMMITTEE.value:
+            return len(self.assignees_committee) == self.req_num_assignee_committee
+        elif responsibility == RespLvl.GENERAL.value:
+            return len(self.assignees_noncommittee) == self.req_num_assignee_noncommittee
+        else:
+            raise ValueError(f"Rresponsibility: {responsibility=} not recognized")
+
+    def eval_enough_assignees_all(self):
+        _len_leaders = self.eval_enough_assignees(RespLvl.LEADER)
+        _len_committees = self.eval_enough_assignees(RespLvl.COMMITTEE)
+        _len_general = self.eval_enough_assignees(RespLvl.GENERAL)
+        return _len_leaders, _len_committees, _len_general
         
-
-class DateRequirement():
-    _MSG_SETTER_NOTALlOWED = "The value is only allowed to be set upon initializing the instance."
-    ATTR_SECTION = "Requirement"
-
-    def __init__(self,
-                 interval_assigneddates_leader=3,
-                 interval_assigneddates_commitee=4,
-                 interval_assigneddates_general=5):
-        self._interval_assigneddates_leader = interval_assigneddates_leader
-        self._interval_assigneddates_commitee = interval_assigneddates_commitee
-        self._interval_assigneddates_general = interval_assigneddates_general
-
-        self._date_earliest = None
-
-    @property
-    def date_earliest(self):
-        return self._date_earliest
-
-    @date_earliest.setter
-    def date_earliest(self, date_obj):
-        """
-        @type datetime.date
-        """
-        if not isinstance(date_obj, date):
-            raise TypeError(f"Type '{type(date_obj)=}' does not match.")
-        self._date_earliest = date_obj
-
-    @property
-    def interval_assigneddates_leader(self):
-        # TODO Haven't figured this out, but for some reason these getter methods were returning str.
-        return int(self._interval_assigneddates_leader)
-
-    @interval_assigneddates_leader.setter
-    def interval_assigneddates_leader(self, val):
-        raise ValueError(self._MSG_SETTER_NOTALlOWED)
-
-    @property
-    def interval_assigneddates_commitee(self):
-        return int(self._interval_assigneddates_commitee)
-
-    @interval_assigneddates_commitee.setter
-    def interval_assigneddates_commitee(self, val):
-        raise ValueError(self._MSG_SETTER_NOTALlOWED)
-
-    @property
-    def interval_assigneddates_general(self):
-        return int(self._interval_assigneddates_general)
-
-    @interval_assigneddates_general.setter
-    def interval_assigneddates_general(self, val):
-        raise ValueError(self._MSG_SETTER_NOTALlOWED)
+        

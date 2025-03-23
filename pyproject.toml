@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gjls_matching"
-version = "0.0.9"
+version = "0.1.1"
 description = "Matching for a voluteering schedule at a school"
 readme = "README.md"
 authors = [{ name = "Isaac Saito", email = "iisaac.saito@gmail.com" }]
@@ -17,12 +17,13 @@ classifiers = [
 keywords = ["many-to-many matching"]
 dependencies = [
     "matching",
-    "PyYAML>=6.0.1"
+    "openpyxl>=3.0.6",  # TODO Consider https://github.com/kinu-garage/nton_matching/issues/19
+    "PyYAML>=6.0.1",
 ]
 requires-python = ">=3.9"
 
 [project.optional-dependencies]
-dev = ["pip-tools", "pytest"]
+dev = ["ipython", "pip-tools", "pytest"]
 
 [project.urls]
 Homepage = "https://github.com/kinu-garage/nton_matching"
