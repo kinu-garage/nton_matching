@@ -43,7 +43,7 @@ class GjUtil:
             logger = GjUtil.get_logger()
         _responsibility = None
         if role:
-            a_role_id = role.id.value
+            a_role_id = role.id
         else:
             a_role_id = 0
         logger.info(f"{a_role_id=}")
@@ -406,6 +406,44 @@ Ignoring {person_id=}, Person: {person}.")
         workers.max_allowance = max_allowance
         return workers
 
-    def str_roles(roles: List[Roles_Definition]):
-        #for role in roles:
-        pass
+    @staticmethod
+    def str_ids(objs) -> str:
+        """
+        @type objs: Objects of a class that has `id` as an attribute.
+        """
+        _resps = []
+        for obj in objs:
+            _resps.append(str(obj.id))
+        _str_resps = ",".join(_resps) if _resps else "No ID found."
+        return _str_resps
+
+
+class MaxAllowance():
+    def __init__(self, responsibility_lvl: RespLvl, available_extras_persons: int, unlucky_persons: int):
+        self._responsibility_lvl = responsibility_lvl
+        self._available_extras_persons = available_extras_persons
+        self._unlucky_persons = unlucky_persons
+
+    @property
+    def responsibility_lvl(self) -> RespLvl:
+        return self._responsibility_lvl
+
+    @responsibility_lvl.setter
+    def responsibility_lvl(self, value: RespLvl):
+        self._responsibility_lvl = value
+
+    @property
+    def available_extras_persons(self) -> int:
+        return self._available_extras_persons
+
+    @available_extras_persons.setter
+    def available_extras_persons(self, value: int):
+        self._available_extras_persons = value
+
+    @property
+    def unlucky_persons(self) -> int:
+        return self._unlucky_persons
+
+    @unlucky_persons.setter
+    def unlucky_persons(self, value: int):
+        self._unlucky_persons = value

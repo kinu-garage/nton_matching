@@ -198,7 +198,7 @@ class PersonPlayer(Player):
 
 
 class PersonBank():
-    def __init__(self, persons):
+    def __init__(self, persons, max_allowance=None):
         """
         @type persons: [PersonPlayer]
         @param persons: Input list will be converted as a dict.
@@ -206,10 +206,14 @@ class PersonBank():
         self._persons = {}
         for p in persons:
             self._persons[p.id] = p
-        self._max_allowance = None
+        self._max_allowance = max_allowance
 
     @property
     def persons(self) -> Dict[int, PersonPlayer]:
+        """
+        @note: To unpack, use `items()` method, e.g.
+           
+        """
         return self._persons
 
     @persons.setter

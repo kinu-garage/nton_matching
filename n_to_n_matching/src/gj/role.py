@@ -35,11 +35,17 @@ class Roles_Definition(Enum):
 
 
 class Role():
-    def __init__(self, id: int=Roles_Definition.UNDEFINED):
+    def __init__(self, id: Roles_Definition=Roles_Definition.UNDEFINED):
         self._role_id = id
 
+    def __repr__(self):
+        return self._role_id
+
+    def __str__(self):
+        return str(self._role_id)
+
     @property
-    def id(self):
+    def id(self) -> Roles_Definition:
         return self._role_id
 
     @id.setter

@@ -443,3 +443,4 @@ def test_3_tosho(path_touban_master_sheet):
 
     solution = GjVolunteerAllocationGame.create_from_dictionaries_2(
         dates_input, guardian_input).solve()    
+    GjVolunteerAllocationGame.print_tabular_stdout(solution)

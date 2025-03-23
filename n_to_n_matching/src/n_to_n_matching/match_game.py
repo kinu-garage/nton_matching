@@ -67,7 +67,7 @@ class GjVolunteerAllocationGame(BaseGame):
         for person_id, person_obj in solution.person_bank.persons.items():
             num_assigned_dates, num_assigned_leader, num_assigned_committee, num_assigned_noncommittee = GjUtil.get_assigned_dates(
                 person_id, solution.dates_lgtm)
-            print(f"P-ID {person_id}, responsibility: {Responsibility.str_responsibilities(person_obj.responsibilities)}, #assigned date: {num_assigned_dates}")
+            #print(f"P-ID {person_id}, responsibility: {Responsibility.str_responsibilities(person_obj.responsibilities)}, #assigned date: {num_assigned_dates}")
         print(f"{_heading_dates_lgtm:O^40}")
         for date, date_detail in solution.items():
             print(f"{date}\n\tLeader: {date_detail[WorkDate.ATTR_LIST_ASSIGNED_LEADER]}\n\t",
@@ -177,7 +177,7 @@ class GjVolunteerAllocationGame(BaseGame):
             date_wd.assignee_noncommittee(person)
         else:
             raise ValueError(f"Not assigning '{person}' ID={person.id} as the needs didn't match the responsibilities.  \
-Responsibilities: {Responsibility.str_responsibilities(person.responsibilities)}, roles: {person.roles}. {_enough_leaders=}, {_enough_committee=}, {_enough_noncommittee=}")
+Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_ids(person.roles)}. {_enough_leaders=}, {_enough_committee=}, {_enough_noncommittee=}")
 
         date_assigned = AssignedDate(date_wd.date, responsibility)
         person.assign_myself(date_assigned, requirements)
@@ -220,7 +220,8 @@ Responsibilities: {Responsibility.str_responsibilities(person.responsibilities)}
                 # TODO 20250305 Should call `assign_responsibility` per each resplvl
                 self.assign_responsibility(date, person, responsibility_id, req_space_days, requirements)
             except ValueError as e:
-                self._logger.warning(f"Error received: {str(e)}. Skipping {person.id =}, continuing.")
+                self._logger.warning(f"Skipping {person.id =} for this role, continuing.")
+                self._logger.debug(f"Error received: {str(e)}.")
                 continue
         return date
 
@@ -237,6 +238,21 @@ Responsibilities: {Responsibility.str_responsibilities(person.responsibilities)}
                 
         if requirements.type_duty == Roles_Definition.TOSHO_COMMITEE:
             req_responsibilities = [ResponsibilityLevel.GENERAL, ResponsibilityLevel.COMMITTEE, ResponsibilityLevel.LEADER]
+
+            ### BEGIN: Very adhoc, NEEDS better design ###
+            # For Tosho, the assignable persons are either those in Tosho Committee or general
+            # Therefore, removing Safety committee members.
+            _tosho_persons: List[PersonPlayer] = []
+            for pid, pobj in person_bank.persons.items():
+                self._logger.debug(f"175 {pobj=}, roles: {GjUtil.str_ids(pobj.roles)}")
+                _role_ids = [role.id for role in pobj.roles]
+                self._logger.debug(f"174 {_role_ids=}. Btw {Roles_Definition.SAFETY_COMMITEE=}")
+                if any(Roles_Definition.SAFETY_COMMITEE.value == role.id for role in pobj.roles):
+                    self._logger.info(f"177 Skipping {pobj=} as it's SAFETY committee")
+                    continue
+                _tosho_persons.append(pobj)
+            person_bank = PersonBank(_tosho_persons, person_bank.max_allowance)
+            ### END: Very adhoc, NEEDS better design ###
         elif requirements.type_duty == Roles_Definition.SAFETY_COMMITEE:
             req_responsibilities = [ResponsibilityLevel.GENERAL, ResponsibilityLevel.LEADER]
         else:

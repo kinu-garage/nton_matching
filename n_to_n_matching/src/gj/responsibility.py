@@ -53,18 +53,6 @@ class Responsibility(ABC):
     #def id(self, val: ResponsibilityLevel):
     #    raise NotImplementedError("responsibility ID should not be settable after initialization.")
 
-    @staticmethod 
-    def str_responsibilities(responsibilities) -> str:
-        """
-        @type responsibilities: List[Responsibility]
-        """
-        _resps = []
-        for r in responsibilities:
-            _resps.append(str(r.id))
-        _str_resps = ",".join(_resps) if _resps else "No responsibilities found."
-        return _str_resps
-
-
 class Leader(Responsibility):
     def __init__(self):
         super().__init__(ResponsibilityLevel.LEADER)
