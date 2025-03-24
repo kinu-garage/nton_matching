@@ -15,7 +15,9 @@
 # limitations under the License.
 
 import datetime
+from typing import List
 
+from n_to_n_matching.workdate_player import WorkDate
 
 class Consts():
     ATTR_MAX_STINT_OPPORTUNITIES = "max_stint_opportunities"
@@ -29,6 +31,7 @@ class DateRequirement():
 
     def __init__(self,
                  type_duty,
+                 dates: List[WorkDate],
                  interval_assigneddates_leader=3,
                  interval_assigneddates_commitee=4,
                  interval_assigneddates_general=5):
@@ -36,6 +39,7 @@ class DateRequirement():
         @type type_match: `Roles_Definition` intenum.
         """
         self._type_duty = type_duty
+        self._dates = dates
         self._interval_assigneddates_leader = interval_assigneddates_leader
         self._interval_assigneddates_commitee = interval_assigneddates_commitee
         self._interval_assigneddates_general = interval_assigneddates_general
@@ -50,6 +54,18 @@ class DateRequirement():
     @type_duty.setter
     def type_duty(self, value):
         raise ValueError(self._MSG_SETTER_NOTALlOWED)
+
+    @property
+    def dates(self) -> List[WorkDate]:
+        """
+        @note The `WorkDate` instances returned is primarilly a requirement before it gets processed,
+          thus may NOT contain the information updated during the application process.
+        """
+        return self._dates
+
+    @dates.setter
+    def dates(self, val: List[WorkDate]):
+        self._dates = val
 
     @property
     def date_earliest(self) -> datetime.date:

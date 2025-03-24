@@ -54,10 +54,7 @@ class GjVolunteerAllocationGame(BaseGame):
         self._logger = GjUtil.get_logger(__name__, logger_obj)
 
     @classmethod
-    def print_tabular_stdout(cls, solution):
-        """
-        @type solution: n_to_n_matching.gj_rsc_matching.GjVolunteerMatching
-        """
+    def print_tabular_stdout(cls, solution: GjVolunteerMatching):
         _heading = "Result"
         _heading_dates_lgtm = "Dates filled"
         _heading_dates_failed = "Dates not-filled"
@@ -112,11 +109,9 @@ class GjVolunteerAllocationGame(BaseGame):
         for d in dates:
             self._log_date_content(d, msg_prefix="f{msg_prefix}: ")
 
-    def find_dates_need_attention(self, dates):
+    def find_dates_need_attention(self, dates: List[WorkDate]) -> Tuple[List[WorkDate], List[WorkDate]]:
         """
         @summary Split the input `dates` into 2 sets, one that needs attention and the others don't.
-        @type dates: [WorkDate]
-        @rtype: [WorkDate], 
         """
         dates_attention = []
         dates_lgtm = []
@@ -180,7 +175,7 @@ class GjVolunteerAllocationGame(BaseGame):
 Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_ids(person.roles)}. {_enough_leaders=}, {_enough_committee=}, {_enough_noncommittee=}")
 
         date_assigned = AssignedDate(date_wd.date, responsibility)
-        person.assign_myself(date_assigned, requirements)
+        person.assign_myself(date_assigned)
 
         self._log_dates("116 Memory addr of date.assignees_leader: {}".format(id(date_wd.assignees_leader)))
 
@@ -309,19 +304,26 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
     def _log_date_content(self, date, msg_prefix=""):
         self._logger.info(f"{msg_prefix} Date={date.date} assignees stored. Leader: {date.assignees_leader}, Committee: {date.assignees_committee}, Non-commitee: {date.assignees_noncommittee}")
 
-    def match(self, dates, person_bank, requirements=None, optimal=""):
+    def match(
+            self,
+            dates: List[WorkDate],
+            person_bank: PersonBank,
+            requirements: DateRequirement=None,
+            optimal="") -> Tuple[List[WorkDate], List[WorkDate], DateRequirement]:
         """
-        @type dates: [n_to_n_matching.WorkDate]
-        @type person_bank: n_to_n_matching.PersonBank
-        @type reqs: DateRequirement
         @param optimal: Unused for now, kept just to make it consistent with `matching` pkg.
         @return 
         @raise ValueError: If the given `dates` already filled with assignees.
         """
         self._logger.info(f"{requirements.interval_assigneddates_leader = }, {requirements.interval_assigneddates_commitee = }, {requirements.interval_assigneddates_general = }")
-        if not requirements:
-            self._logger.warning("Requirement was not passed. Using default.")
-            requirements = DateRequirement()
+        if (not requirements):
+            if self._reqs:
+                requirements = self._reqs
+            else:
+                self._logger.warning("Requirement was not passed. Using default.")
+                requirements = DateRequirement()
+                requirements.dates = dates
+                self._reqs = requirements
 
         dates_need_attention = []
 
@@ -353,24 +355,24 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
             self._log_date_content(date, msg_prefix="AFTER assigning a day:")
             self._logger.info(f"AFTER assigning a day: All dates_need_attention={dates_need_attention}\n\tdates_lgtm={dates_lgtm}")
         rest_dates_need_attention = list(set(dates_need_attention).difference(dates_lgtm))
-        return dates_lgtm, rest_dates_need_attention
+        return dates_lgtm, rest_dates_need_attention, requirements
 
-    def solve(self, optimal=""):
+    def solve(self, optimal="") -> GjVolunteerMatching:
         """
         @description: 
-        @return `GjVolunteerMatching`
         """
         if not self._logger:
             # Not ideal workaround of __init__ being bypassed...
             logger_obj = GjUtil.get_logger()
             self._logger = GjUtil.get_logger(__name__, logger_obj)
 
-        dates_lgtm, dates_failed = self.match(self._dates, self._person_bank, self._reqs, optimal)
+        dates_lgtm, dates_failed, reqs = self.match(self._dates, self._person_bank, self._reqs, optimal)
         self._matching = GjVolunteerMatching(
-            dates_lgtm,
-            dates_failed,
-            self._person_bank,
-            self._person_bank.max_allowance
+            reqs=reqs,
+            dates_lgtm=dates_lgtm,
+            dates_failed=dates_failed,
+            person_bank=self._person_bank,
+            max_allowance=self._person_bank.max_allowance
         )
         return self._matching
 
@@ -413,12 +415,13 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
             logger_obj.warning(f"Requirement is missing. Moving on with default value.")
             requirement = DateRequirement()
 
-        _dates = [WorkDate(datestr=d[WorkDate.ATTR_DATE],
-                           school_off=d.get(WorkDate.ATTR_SCHOOL_OFF, False),
-                           req_num_leader=d.get(WorkDate.ATTR_NUM_LEADER, 1),
-                           req_num_committee=d.get(WorkDate.ATTR_NUM_COMMITTEE, 2),
-                           req_num_noncommittee=d.get(WorkDate.ATTR_NUM_GENERAL, 3)
-                           ) for d in dates_prefs[WorkDate.ATTR_SECTION]]
+        _dates = [WorkDate(datestr=date[WorkDate.ATTR_DATE],
+                           school_off=date.get(WorkDate.ATTR_SCHOOL_OFF, False),
+                           req_num_leader=date.get(WorkDate.ATTR_NUM_LEADER, WorkDate.DEFAULT_PERDAY_LEADER),
+                           req_num_committee=date.get(WorkDate.ATTR_NUM_COMMITTEE, WorkDate.DEFAULT_PERDAY_COMMITTEE),
+                           req_num_noncommittee=date.get(WorkDate.ATTR_NUM_GENERAL, WorkDate.DEFAULT_PERDAY_GENERAL)
+                           ) for date in dates_prefs[WorkDate.ATTR_SECTION]]
+        requirement.dates = _dates
         # Find the earliest date in the given dates in order for that date to be the beginning of the given period.
         _date_earliest = min(date.date for date in _dates)
         requirement.date_earliest = _date_earliest

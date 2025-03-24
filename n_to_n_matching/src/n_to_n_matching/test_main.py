@@ -17,6 +17,7 @@
 from n_to_n_matching.match_game import GjVolunteerAllocationGame
 from n_to_n_matching.person_player import PersonPlayer
 from n_to_n_matching.workdate_player import WorkDate
+from gj.printing import GjDocx
 from gj.requirements import DateRequirement
 from gj.responsibility import ResponsibilityLevel
 from gj.role import Role, Roles_Definition
@@ -399,8 +400,8 @@ def fixture_dates_0():
             {
                 WorkDate.ATTR_DATE: "2024-04-20",
                 WorkDate.ATTR_NUM_LEADER: 1,
-                WorkDate.ATTR_NUM_COMMITTEE: 3,
-                WorkDate.ATTR_NUM_GENERAL: 4,
+                WorkDate.ATTR_NUM_COMMITTEE: 2,
+                WorkDate.ATTR_NUM_GENERAL: 2,
             },
             { WorkDate.ATTR_DATE: "2024-04-27", },
             { WorkDate.ATTR_DATE: "2024-05-04", },
@@ -444,3 +445,6 @@ def test_3_tosho(path_touban_master_sheet):
     solution = GjVolunteerAllocationGame.create_from_dictionaries_2(
         dates_input, guardian_input).solve()    
     GjVolunteerAllocationGame.print_tabular_stdout(solution)
+    _DIR_PKG_HOME_TEST = "/cws/src/130s/nton_matching"
+    docx_gen = GjDocx(_DIR_PKG_HOME_TEST)
+    docx_gen.print_distributable(solution=solution, requirements=solution.reqs, heading1="headerrrr", paragraph="paragraphhhh")

@@ -22,7 +22,6 @@ from typing import Dict, List
 from matching.players import Player
 
 from gj.assigned_date import AssignedDate
-from gj.requirements import DateRequirement
 from gj.responsibility import Responsibility
 from gj.responsibility import ResponsibilityLevel as RespLvl
 from gj.role import Role
@@ -44,7 +43,8 @@ class PersonPlayer(Player):
                  name,
                  id,
                  email_addr,
-                 phone_num,
+                 phone_num: str,
+                 grade_class: str,
                  responsibilities: List[Responsibility],
                  children_ids=[],
                  roles: List[Role]=[Role()],
@@ -67,6 +67,7 @@ class PersonPlayer(Player):
         self.name = name
         self._email_addr = email_addr
         self._phone_num = phone_num
+        self._grade_class = grade_class
         self._children_ids = children_ids
 
         self._last_assigned_date_general = None
@@ -86,6 +87,22 @@ class PersonPlayer(Player):
     @id.setter
     def id(self, val):
         raise AttributeError(self._ERRMSG_SHOULD_NOT_OVERWRITE.format("id"))
+
+    @property
+    def grade_class(self) -> str:
+        return self._grade_class
+    
+    @grade_class.setter
+    def grade_class(self, val):
+        raise AttributeError(self._ERRMSG_SHOULD_NOT_OVERWRITE.format("grade_class"))
+
+    @property
+    def phone_num(self) -> str:
+        return self._phone_num
+    
+    @phone_num.setter
+    def phone_num(self, val):
+        raise AttributeError(self._ERRMSG_SHOULD_NOT_OVERWRITE.format("phone_num"))
 
     @property
     def assigned_dates(self):
@@ -175,7 +192,7 @@ class PersonPlayer(Player):
                 return resp
         raise ValueError(f"Requested responsibility level {responsibility_level} is not found in the passed set of {responsibilities=}.")
 
-    def assign_myself(self, date_assigned: AssignedDate, requirements):
+    def assign_myself(self, date_assigned: AssignedDate):
         """
         @summary Set the assigned status on itself
         @todo Rename appropriately esp. there are other methods that have similar names.
@@ -186,9 +203,6 @@ class PersonPlayer(Player):
         # Screening
         if not self.responsibilities:
             raise RuntimeError(f"'responsibilities', which should've been set during initialization, is empty.")
-        if not requirements:
-            self._logger.warning("Requirement was not passed. Using default.")
-            requirements = DateRequirement()        
         if not isinstance(date_assigned, AssignedDate):
             raise TypeError(f"Type is incompatible. date: '{type(AssignedDate)}'")
 
