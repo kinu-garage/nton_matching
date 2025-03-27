@@ -17,6 +17,7 @@
 import logging
 from typing import Dict, List, Tuple
 
+from gj.requirements import DateRequirement
 from gj.responsibility import Committeer, Leader, GenGuardian, Responsibility, ToubanExempt
 from gj.responsibility import ResponsibilityLevel as RespLvl
 from gj.requirements import Consts
@@ -46,7 +47,7 @@ class GjUtil:
             a_role_id = role.id
         else:
             a_role_id = 0
-        logger.info(f"{a_role_id=}")
+        logger.debug(f"{a_role_id=}")
         if ((a_role_id == Roles_Definition.GAKYU_COMMITEE.value) or
             (a_role_id == Roles_Definition.GYOJI_COMMITEE.value) or
             (a_role_id == Roles_Definition.TOUBAN_COMMITEE.value) or
@@ -236,7 +237,7 @@ Ignoring {person_id=}, Person: {person}.")
             else:
                 logger.warning(f"_stint_already_assigned = '{_stint_already_assigned}' not falling under any criteria. Skipping for now.")
 
-            logger.info(f"Worker name: {worker} {person_id=}, #responsibility IDs: '{len(worker.responsibilities)}'{msg_responsibility}, assigned_dates: '{assigned_dates}', _stint_already_assigned: '{_stint_already_assigned}'")
+            logger.debug(f"Worker name: {worker} {person_id=}, #responsibility IDs: '{len(worker.responsibilities)}'{msg_responsibility}, assigned_dates: '{assigned_dates}', _stint_already_assigned: '{_stint_already_assigned}'")
         GjUtil._log_persons_per_bookings(free_workers, fullybooked_workers, overlybooked_workers, msg_prefix="151")
         #if not free_workers:
         #    raise ValueError("All given persons are already assigned to the max number of dates")
@@ -244,23 +245,23 @@ Ignoring {person_id=}, Person: {person}.")
 
     @staticmethod
     def find_free_workers_per_responsibility(
-            responsibility_id: RespLvl,
+            required_responsibility_id: RespLvl,
             dates: List[WorkDate],
             persons_bank: PersonBank,
+            requirements: DateRequirement,            
             overbook_allowed_num=1,
             logger=None):
         """
         @type responsibility: A specific element in `RespLvl`
         """
-        # TBD Remove this if block. This shouldn't be needed.
-        if not logger:
+        if not logger:  # TODO Remove this if block. This shouldn't be needed.
             logger = GjUtil.get_logger()
         
         persons = []
         for pid, pobj in persons_bank.persons.items():
-            logger.debug(f"DEBUG 192 {pid=}, {pobj=}, requested resp ID: {responsibility_id}")
+            logger.debug(f"DEBUG 192 {pid=}, {pobj=}, requested resp ID: {required_responsibility_id}")
             for resp_of_a_person in pobj.responsibilities:
-                logger.debug(f"194 Required resp ID: {responsibility_id} (type of {type(responsibility_id)}) given person's responsibility ID: {resp_of_a_person} (type of {type(resp_of_a_person)})")
+                logger.debug(f"194 Required resp ID: {required_responsibility_id} (type of {type(required_responsibility_id)}) given person's responsibility ID: {resp_of_a_person} (type of {type(resp_of_a_person)})")
                 _wanted_found = False
 
                 # TODO This is VERY adhoc. Better solution is preferred.
@@ -272,11 +273,19 @@ Ignoring {person_id=}, Person: {person}.")
                 #   replace the person's responsibility level with a leader.
                 #   The replaced responsibility level must be reverted at the end of the loop.
                 _org_resp_of_a_person = resp_of_a_person
-                if (responsibility_id == RespLvl.LEADER) and (resp_of_a_person.id == RespLvl.COMMITTEE):
-                    resp_of_a_person = Leader()
+                if required_responsibility_id == RespLvl.LEADER:
+                    if (resp_of_a_person.id == RespLvl.COMMITTEE) and ((requirements.type_duty == Roles_Definition.SAFETY_COMMITEE) or 
+                                                                       (requirements.type_duty == Roles_Definition.TOSHO_COMMITEE)):
+                        resp_of_a_person = Leader()
+                    elif resp_of_a_person.id == RespLvl.GENERAL and (
+                                                                     (requirements.type_duty == Roles_Definition.HOKEN_COMMITEE)):
+                        resp_of_a_person = Leader()
+                    #else:
+                    #    raise RuntimeError(f"With {required_responsibility_id=} AND this {resp_of_a_person.id=}, {requirements.type_duty=}, \
+#no combo found. TBD better error message/handling needed.")
                     logger.debug(f"193 Required resp is '{RespLvl.LEADER}'. Person's responsibility is overwritten as {resp_of_a_person}")
 
-                if responsibility_id == resp_of_a_person.id:
+                if required_responsibility_id == resp_of_a_person.id:
                     logger.debug(f"195 Requested responsibility ID {resp_of_a_person} found in '{pid=}'")
                     persons.append(pobj)
                     _wanted_found = True
@@ -287,8 +296,8 @@ Ignoring {person_id=}, Person: {person}.")
                 if _wanted_found:
                     break
         
-        logger.debug("197 max_allowance={}, responsibility: {}".format(persons_bank.max_allowance, responsibility_id))
-        _allowance_of_responsibility = persons_bank.max_allowance[responsibility_id]
+        logger.debug("197 max_allowance={}, responsibility: {}".format(persons_bank.max_allowance, required_responsibility_id))
+        _allowance_of_responsibility = persons_bank.max_allowance[required_responsibility_id]
         return GjUtil.find_free_workers(dates,
                                         persons,
                                         _allowance_of_responsibility,
@@ -326,10 +335,13 @@ Ignoring {person_id=}, Person: {person}.")
         if not logger:
             logger = GjUtil.get_logger()
 
-        if (not needed_player) or (not available_player):
-            raise ValueError(f"Both values must not be 0. needed_player={needed_player}, available_player={available_player}")
-        unlucky = 0
         available_extra = 0
+        unlucky = 0
+
+        if (not needed_player):
+            # Depending on the role, it is possible the num of assignee for particular roles to be 0.
+            return 0, available_player, unlucky
+
         if needed_player <= available_player:
             max_stint = 1
             available_extra = available_player - needed_player	

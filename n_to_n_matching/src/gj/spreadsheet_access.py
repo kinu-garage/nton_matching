@@ -50,10 +50,7 @@ class GjRowEntity:
         27: "email_registered",      # "クラス登録メール"
     }
 
-    def __init__(self, row, logger_obj=None):
-        """
-        @type row: SpreadsheetRow
-        """
+    def __init__(self, row: SpreadsheetRow, logger_obj=None):
         if type(row) != SpreadsheetRow:
             raise ValueError(f"'row' object must be the type of SpreadsheetRow. Instead, {type(row)} was passed.")
         self._logger = GjUtil.get_logger(__name__, logger_obj)
@@ -86,6 +83,8 @@ class GjRowEntity:
             #   it doesn't provide convenience for this tool's usecases.
             #   To mitigate, add a special cell to the row object that conveys the type of role.
             ss_cell = SpreadsheetCell(cell, cell_title)
+            # TODO Looks like the usage of this ss_row list assumes the order of elements are fixed, however,
+            # the current implementation doesn't guarantee the order. Needs a better impl.
             ss_row.append(ss_cell)
 
     def _get_value_from_gj_row(self, col_id):
@@ -106,6 +105,13 @@ class GjRowEntity:
         @todo # TODO Identifying the column by specifying column ID is very adhoc. Need more standardized, robust way.
         """
         return self._get_value_from_gj_row(24)
+
+    @property
+    def grade_class(self):
+        """
+        @todo # TODO Identifying the column by specifying column ID is very adhoc. Need more standardized, robust way.
+        """
+        return self._get_value_from_gj_row(3)
 
     @property
     def id_in_sheet(self):
@@ -279,6 +285,7 @@ class GjToubanAccess:
                 name =_student_fullname,
                 email_addr = row.email_emergency,
                 phone_num = row.phone_emergency,
+                grade_class = row.grade_class,
                 roles=[a_role],
                 # 2024/08 'children_ids' attribute was originally created without the knowledge of how students/guardians are 
                 # grouped into a family info. Now that it's more known, 'children_ids' doesn't seem to be needed, hence

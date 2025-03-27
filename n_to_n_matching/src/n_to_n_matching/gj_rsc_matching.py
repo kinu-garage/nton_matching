@@ -19,6 +19,7 @@ from typing import List
 
 from matching import ManyToManyMatching
 
+from gj.requirements import DateRequirement
 from n_to_n_matching.util import Util
 from n_to_n_matching.workdate_player import WorkDate
 
@@ -31,7 +32,7 @@ class GjVolunteerMatching(ManyToManyMatching):
     _KEY_PERSON_ID = "person_id"
     _KEY_responsibility_id = "responsibility_id"
 
-    def __init__(self, dates_lgtm, dates_failed, person_bank=None, max_allowance=None):
+    def __init__(self, reqs: DateRequirement, dates_lgtm, dates_failed, person_bank=None, max_allowance=None):
         """
         @type dates_lgtm: dict
         @param dates_lgtm: needs the following keys:
@@ -47,6 +48,7 @@ class GjVolunteerMatching(ManyToManyMatching):
         # Validate the dict: Error if the `dictionary` doesn't have expected keys.
 
         # Custom attributes
+        self._reqs = reqs
         self._person_bank = person_bank
         ## Keeping _dates_list as a member variable is redundant as 
         ## the same info converted to a Python's dict is stored in the
@@ -60,6 +62,10 @@ class GjVolunteerMatching(ManyToManyMatching):
 
     def add_item(self, new_match):
         self._dataframe.append(new_match)
+
+    @property
+    def reqs(self) -> DateRequirement:
+        return self._reqs
 
     @property
     def dates_lgtm(self):

@@ -14,12 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List
+
 from n_to_n_matching.match_game import GjVolunteerAllocationGame
 from n_to_n_matching.person_player import PersonPlayer
 from n_to_n_matching.workdate_player import WorkDate
+from gj.printing import GjDocx
 from gj.requirements import DateRequirement
 from gj.responsibility import ResponsibilityLevel
-from gj.role import Role, Roles_Definition
+from gj.role import Role, Roles_Definition, Roles_ID
 from gj.spreadsheet_access import GjToubanAccess2024 as GTA
 
 
@@ -393,14 +396,17 @@ def fixture_dates_0():
             WorkDate.REQ_INTERVAL_ASSIGNEDDATES_LEADER: 3*7,
             WorkDate.REQ_INTERVAL_ASSIGNEDDATES_COMMITTE: 3*7,
             WorkDate.REQ_INTERVAL_ASSIGNEDDATES_GENERAL: 5*7,
+            WorkDate.ATTR_NUM_LEADER: 1,
+            WorkDate.ATTR_NUM_COMMITTEE: 2,
+            WorkDate.ATTR_NUM_GENERAL: 1,           
         },
         WorkDate.ATTR_SECTION: [
             { WorkDate.ATTR_DATE: "2024-04-13", },
             {
                 WorkDate.ATTR_DATE: "2024-04-20",
                 WorkDate.ATTR_NUM_LEADER: 1,
-                WorkDate.ATTR_NUM_COMMITTEE: 3,
-                WorkDate.ATTR_NUM_GENERAL: 4,
+                WorkDate.ATTR_NUM_COMMITTEE: 2,
+                WorkDate.ATTR_NUM_GENERAL: 2,
             },
             { WorkDate.ATTR_DATE: "2024-04-27", },
             { WorkDate.ATTR_DATE: "2024-05-04", },
@@ -415,10 +421,53 @@ def fixture_dates_1():
           WorkDate.ATTR_NUM_GENERAL: 5,
          },
         { WorkDate.ATTR_DATE: "2024-06-01", },
-        { WorkDate.ATTR_DATE: "2024-06-08", },
-        { WorkDate.ATTR_DATE: "2024-06-15", },
+        #{ WorkDate.ATTR_DATE: "2024-06-08", },
+        #{ WorkDate.ATTR_DATE: "2024-06-15", },
     ])
     return dates
+
+def fixture_dates_hoken_0():
+    return {
+        DateRequirement.ATTR_SECTION: {
+            WorkDate.ATTR_DUTY_TYPE: Roles_Definition.HOKEN_COMMITEE,
+            WorkDate.REQ_INTERVAL_ASSIGNEDDATES_LEADER: 5*7,
+            WorkDate.REQ_INTERVAL_ASSIGNEDDATES_COMMITTE: 5*7,
+            WorkDate.REQ_INTERVAL_ASSIGNEDDATES_GENERAL: 5*7,
+            WorkDate.ATTR_NUM_LEADER: 1,
+            WorkDate.ATTR_NUM_COMMITTEE: 0,
+            WorkDate.ATTR_NUM_GENERAL: 1,
+        },
+        WorkDate.ATTR_SECTION: [
+            { WorkDate.ATTR_DATE: "2024-04-13", },
+            { WorkDate.ATTR_DATE: "2024-04-20", },
+            { WorkDate.ATTR_DATE: "2024-04-27", },
+            { WorkDate.ATTR_DATE: "2024-05-04", },
+            { WorkDate.ATTR_DATE: "2024-05-11", },
+            { WorkDate.ATTR_DATE: "2024-05-18", },
+            { WorkDate.ATTR_DATE: "2024-05-25", },
+            { WorkDate.ATTR_DATE: "2024-06-01", },
+        ]}
+
+def fixture_dates_anzen_0():
+    return {
+        DateRequirement.ATTR_SECTION: {
+            WorkDate.ATTR_DUTY_TYPE: Roles_Definition.SAFETY_COMMITEE,
+            WorkDate.REQ_INTERVAL_ASSIGNEDDATES_LEADER: 5*7,
+            WorkDate.REQ_INTERVAL_ASSIGNEDDATES_GENERAL: 5*7,
+            WorkDate.ATTR_NUM_LEADER: 1,
+            WorkDate.ATTR_NUM_COMMITTEE: 1,
+            WorkDate.ATTR_NUM_GENERAL: 3,
+        },
+        WorkDate.ATTR_SECTION: [
+            { WorkDate.ATTR_DATE: "2024-04-13", },
+            { WorkDate.ATTR_DATE: "2024-04-20", },
+            { WorkDate.ATTR_DATE: "2024-04-27", },
+            { WorkDate.ATTR_DATE: "2024-05-04", },
+            { WorkDate.ATTR_DATE: "2024-05-11", },
+            { WorkDate.ATTR_DATE: "2024-05-18", },
+            { WorkDate.ATTR_DATE: "2024-05-25", },
+            { WorkDate.ATTR_DATE: "2024-06-01", },
+        ]}
 
 def test_1(guardian_input):
     #dates_input = Util.read_yaml_to_dict(base_url, "dates.yml")
@@ -436,11 +485,23 @@ def test_2():
 
     test_1(guardian_input)
 
-def test_3_tosho(path_touban_master_sheet):
-    touban_accessor = GTA()
+def test_3(path_touban_master_sheet, output_path="/cws/src/130s/nton_matching", role: Roles_ID=Roles_ID.TOSHO):
+    touban_accessor = GTA()  # TODO What is this?
     guardian_input = touban_accessor.gj_xls_to_personobj(path_touban_master_sheet)
-    dates_input = fixture_dates_1()
+    if role == Roles_ID.TOSHO.value:
+        dates_input = fixture_dates_1()
+        _paragraph = Roles_Definition.TOSHO_COMMITEE.value
+    elif role == Roles_ID.HOKEN.value:
+        dates_input = fixture_dates_hoken_0()
+        _paragraph = Roles_Definition.HOKEN_COMMITEE.value
+    elif role == Roles_ID.ANZEN.value:
+        dates_input = fixture_dates_anzen_0()
+        _paragraph = Roles_Definition.SAFETY_COMMITEE.value
 
+    print(f"064 {role=}")
     solution = GjVolunteerAllocationGame.create_from_dictionaries_2(
-        dates_input, guardian_input).solve()    
+        dates_input, guardian_input, role=role).solve()    
     GjVolunteerAllocationGame.print_tabular_stdout(solution)
+
+    docx_gen = GjDocx(output_path)
+    docx_gen.print_distributable(solution=solution, requirements=solution.reqs, heading1="202404-06当番予定表", paragraph=_paragraph)

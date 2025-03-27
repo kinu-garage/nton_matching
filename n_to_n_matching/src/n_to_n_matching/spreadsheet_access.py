@@ -135,9 +135,8 @@ class SpreadsheetCell(pyxl_Cell):
 
 
 class SpreadsheetRow():
-    def __init__(self, row, is_title_row=False):
+    def __init__(self, row: pyxl_Cell, is_title_row=False):
         """
-        @type row: [pyxl_Cell]
         @param is_title_row: Bool to show if the row represents title of the cells below each cell or not.
            This can only be set upon initialization, so no setter is defined.
         """

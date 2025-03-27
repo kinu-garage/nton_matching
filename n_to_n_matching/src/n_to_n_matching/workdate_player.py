@@ -44,13 +44,16 @@ class WorkDate(Player):
     REQ_INTERVAL_ASSIGNEDDATES_LEADER = "req_interval_assigneddates_leader"
     REQ_INTERVAL_ASSIGNEDDATES_COMMITTE = "req_interval_assigneddates_commitee"
     REQ_INTERVAL_ASSIGNEDDATES_GENERAL = "req_interval_assigneddates_general"
+    DEFAULT_PERDAY_LEADER = 1
+    DEFAULT_PERDAY_COMMITTEE = 2
+    DEFAULT_PERDAY_GENERAL = 1
     
     def __init__(self,
                  datestr,
                  school_off=False,
-                 req_num_committee=3,
+                 req_num_committee=2,
                  req_num_leader=1,
-                 req_num_noncommittee=2,
+                 req_num_noncommittee=1,
                  assignee_leader: List[PersonPlayer]=None,
                  assignee_commitee: List[PersonPlayer]=None,
                  assignee_noncommitee: List[PersonPlayer]=None):
@@ -138,10 +141,7 @@ class WorkDate(Player):
     def school_off(self):
         return self._school_off
 
-    def get_required_persons(self):
-        """
-        @rtype: int, int, int
-        """
+    def get_required_persons(self) -> Tuple[int, int, int]:
         needed_leader, needed_committee, needed_general = 0, 0, 0
         needed_leader += self.req_num_leader
         needed_committee += self.req_num_assignee_committee
@@ -180,7 +180,7 @@ class WorkDate(Player):
         else:
             raise ValueError(f"Rresponsibility: {responsibility=} not recognized")
 
-    def eval_enough_assignees(self, responsibility: Responsibility):
+    def eval_enough_assignees(self, responsibility: Responsibility) -> bool:
         if responsibility == RespLvl.LEADER.value:
             return len(self.assignees_leader) == self.req_num_leader
         elif responsibility == RespLvl.COMMITTEE.value:
@@ -190,10 +190,11 @@ class WorkDate(Player):
         else:
             raise ValueError(f"Rresponsibility: {responsibility=} not recognized")
 
-    def eval_enough_assignees_all(self):
+    def eval_enough_assignees_all(self) -> Tuple[bool, bool, bool]:
         _len_leaders = self.eval_enough_assignees(RespLvl.LEADER)
         _len_committees = self.eval_enough_assignees(RespLvl.COMMITTEE)
         _len_general = self.eval_enough_assignees(RespLvl.GENERAL)
         return _len_leaders, _len_committees, _len_general
         
-        
+    def total_assignees_num(self) -> int:
+        return len(self.assignees_leader) + len(self.assignees_committee) + len(self.assignees_noncommittee)
