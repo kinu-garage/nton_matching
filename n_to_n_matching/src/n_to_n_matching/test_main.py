@@ -16,14 +16,15 @@
 
 from typing import List
 
-from n_to_n_matching.match_game import GjVolunteerAllocationGame
-from n_to_n_matching.person_player import PersonPlayer
-from n_to_n_matching.workdate_player import WorkDate
+from gj.grade_class import GjGradeGroup
 from gj.printing import GjDocx
 from gj.requirements import DateRequirement
 from gj.responsibility import ResponsibilityLevel
 from gj.role import Role, Roles_Definition, Roles_ID
 from gj.spreadsheet_access import GjToubanAccess2024 as GTA
+from n_to_n_matching.match_game import GjVolunteerAllocationGame
+from n_to_n_matching.person_player import PersonPlayer
+from n_to_n_matching.workdate_player import WorkDate
 
 
 def fixture_persons_1():
@@ -389,17 +390,19 @@ def fixture_persons_3():
     ])
     return persons
 
-def fixture_dates_0():
+def requirement_set_0(duty_type=Roles_Definition.TOSHO_COMMITEE):
     return {
-        DateRequirement.ATTR_SECTION: {
-            WorkDate.ATTR_DUTY_TYPE: Roles_Definition.TOSHO_COMMITEE,
+            WorkDate.ATTR_DUTY_TYPE: duty_type,
             WorkDate.REQ_INTERVAL_ASSIGNEDDATES_LEADER: 3*7,
             WorkDate.REQ_INTERVAL_ASSIGNEDDATES_COMMITTE: 3*7,
             WorkDate.REQ_INTERVAL_ASSIGNEDDATES_GENERAL: 5*7,
             WorkDate.ATTR_NUM_LEADER: 1,
             WorkDate.ATTR_NUM_COMMITTEE: 2,
-            WorkDate.ATTR_NUM_GENERAL: 1,           
-        },
+            WorkDate.ATTR_NUM_GENERAL: 1,
+        }
+
+def fixture_dates_0():
+    return {
         WorkDate.ATTR_SECTION: [
             { WorkDate.ATTR_DATE: "2024-04-13", },
             {
@@ -415,59 +418,41 @@ def fixture_dates_0():
 def fixture_dates_1():
     dates = fixture_dates_0()
     dates[WorkDate.ATTR_SECTION].extend([
-        { WorkDate.ATTR_DATE: "2024-05-11", },
-        { WorkDate.ATTR_DATE: "2024-05-18", },
+        { 
+            WorkDate.ATTR_DATE: "2024-05-11", 
+            WorkDate.ATTR_EXEMPT_GRADE: GjGradeGroup.ELEM_SHOU,  # Entire elementary/Sho-gakko is exempted this day due to parent-teacher meeting.
+         },
+        {
+            WorkDate.ATTR_DATE: "2024-05-18", 
+            WorkDate.ATTR_EXEMPT_GRADE: GjGradeGroup.MIDD_HIGH_CHUKOU
+         },
         { WorkDate.ATTR_DATE: "2024-05-25", 
           WorkDate.ATTR_NUM_GENERAL: 5,
          },
         { WorkDate.ATTR_DATE: "2024-06-01", },
-        #{ WorkDate.ATTR_DATE: "2024-06-08", },
-        #{ WorkDate.ATTR_DATE: "2024-06-15", },
     ])
     return dates
 
 def fixture_dates_hoken_0():
-    return {
-        DateRequirement.ATTR_SECTION: {
-            WorkDate.ATTR_DUTY_TYPE: Roles_Definition.HOKEN_COMMITEE,
-            WorkDate.REQ_INTERVAL_ASSIGNEDDATES_LEADER: 5*7,
-            WorkDate.REQ_INTERVAL_ASSIGNEDDATES_COMMITTE: 5*7,
-            WorkDate.REQ_INTERVAL_ASSIGNEDDATES_GENERAL: 5*7,
-            WorkDate.ATTR_NUM_LEADER: 1,
-            WorkDate.ATTR_NUM_COMMITTEE: 0,
-            WorkDate.ATTR_NUM_GENERAL: 1,
-        },
-        WorkDate.ATTR_SECTION: [
-            { WorkDate.ATTR_DATE: "2024-04-13", },
-            { WorkDate.ATTR_DATE: "2024-04-20", },
-            { WorkDate.ATTR_DATE: "2024-04-27", },
-            { WorkDate.ATTR_DATE: "2024-05-04", },
-            { WorkDate.ATTR_DATE: "2024-05-11", },
-            { WorkDate.ATTR_DATE: "2024-05-18", },
-            { WorkDate.ATTR_DATE: "2024-05-25", },
-            { WorkDate.ATTR_DATE: "2024-06-01", },
-        ]}
+    reqs = requirement_set_0(duty_type=Roles_Definition.HOKEN_COMMITEE)
+    dates = fixture_dates_1()
+    dal = {DateRequirement.ATTR_SECTION: reqs}
+    dal[WorkDate.ATTR_SECTION] = dates[WorkDate.ATTR_SECTION]
+    return dal
 
 def fixture_dates_anzen_0():
-    return {
-        DateRequirement.ATTR_SECTION: {
-            WorkDate.ATTR_DUTY_TYPE: Roles_Definition.SAFETY_COMMITEE,
-            WorkDate.REQ_INTERVAL_ASSIGNEDDATES_LEADER: 5*7,
-            WorkDate.REQ_INTERVAL_ASSIGNEDDATES_GENERAL: 5*7,
-            WorkDate.ATTR_NUM_LEADER: 1,
-            WorkDate.ATTR_NUM_COMMITTEE: 1,
-            WorkDate.ATTR_NUM_GENERAL: 3,
-        },
-        WorkDate.ATTR_SECTION: [
-            { WorkDate.ATTR_DATE: "2024-04-13", },
-            { WorkDate.ATTR_DATE: "2024-04-20", },
-            { WorkDate.ATTR_DATE: "2024-04-27", },
-            { WorkDate.ATTR_DATE: "2024-05-04", },
-            { WorkDate.ATTR_DATE: "2024-05-11", },
-            { WorkDate.ATTR_DATE: "2024-05-18", },
-            { WorkDate.ATTR_DATE: "2024-05-25", },
-            { WorkDate.ATTR_DATE: "2024-06-01", },
-        ]}
+    reqs = requirement_set_0(duty_type=Roles_Definition.SAFETY_COMMITEE)
+    dates = fixture_dates_1()
+    dal = {DateRequirement.ATTR_SECTION: reqs}
+    dal[WorkDate.ATTR_SECTION] = dates[WorkDate.ATTR_SECTION]
+    return dal
+
+def fixture_dates_tosho_0():
+    reqs = requirement_set_0(duty_type=Roles_Definition.TOSHO_COMMITEE)
+    dates = fixture_dates_1()
+    dal = {DateRequirement.ATTR_SECTION: reqs}
+    dal[WorkDate.ATTR_SECTION] = dates[WorkDate.ATTR_SECTION]
+    return dal
 
 def test_1(guardian_input):
     #dates_input = Util.read_yaml_to_dict(base_url, "dates.yml")
@@ -489,7 +474,7 @@ def test_3(path_touban_master_sheet, output_path="/cws/src/130s/nton_matching", 
     touban_accessor = GTA()  # TODO What is this?
     guardian_input = touban_accessor.gj_xls_to_personobj(path_touban_master_sheet)
     if role == Roles_ID.TOSHO.value:
-        dates_input = fixture_dates_1()
+        dates_input = fixture_dates_tosho_0()
         _paragraph = Roles_Definition.TOSHO_COMMITEE.value
     elif role == Roles_ID.HOKEN.value:
         dates_input = fixture_dates_hoken_0()

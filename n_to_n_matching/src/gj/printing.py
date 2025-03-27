@@ -67,7 +67,7 @@ class GjDocx():
             row_obj = table_obj.rows[row_id].cells
             row_obj[0].text = date
             row_obj[2].text = role
-            row_obj[3].text = person.grade_class
+            row_obj[3].text = str(person.grade_class)
             row_obj[4].text = str(person)
             row_obj[5].text = person.phone_num
             row_id += 1

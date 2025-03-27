@@ -237,7 +237,8 @@ Ignoring {person_id=}, Person: {person}.")
             else:
                 logger.warning(f"_stint_already_assigned = '{_stint_already_assigned}' not falling under any criteria. Skipping for now.")
 
-            logger.debug(f"Worker name: {worker} {person_id=}, #responsibility IDs: '{len(worker.responsibilities)}'{msg_responsibility}, assigned_dates: '{assigned_dates}', _stint_already_assigned: '{_stint_already_assigned}'")
+            logger.debug(f"Worker name: {worker} {person_id=}, #responsibility IDs: '{len(worker.responsibilities)}'{msg_responsibility}, \
+assigned_dates: '{assigned_dates}', _stint_already_assigned: '{_stint_already_assigned}'")
         GjUtil._log_persons_per_bookings(free_workers, fullybooked_workers, overlybooked_workers, msg_prefix="151")
         #if not free_workers:
         #    raise ValueError("All given persons are already assigned to the max number of dates")
@@ -258,20 +259,22 @@ Ignoring {person_id=}, Person: {person}.")
             logger = GjUtil.get_logger()
         
         persons = []
+        # TODO This implementation is VERY adhoc. Better solution is preferred.
+        ## Problem aimed: In the input data, "Leader" only exists in a requirement of the days
+        #    (i.e. in the input data, no person is defined as "Leader"). This would result in
+        #    a leader never been assigned with the implementations where a leader can be assigned
+        #    only when the person's responsibility level is also a leader.
+        # Proposed solution: Only when the required responsibility is "Leader" AND when a person's responsibility in the intput data is X (depends on the person's role),
+        #   replace the person's responsibility level with a leader. Per role:
+        #   - Tosho, Safety: Committee
+        #   - Hoken: General
+        #   The replaced responsibility level must be reverted at the end of the loop.
         for pid, pobj in persons_bank.persons.items():
             logger.debug(f"DEBUG 192 {pid=}, {pobj=}, requested resp ID: {required_responsibility_id}")
             for resp_of_a_person in pobj.responsibilities:
                 logger.debug(f"194 Required resp ID: {required_responsibility_id} (type of {type(required_responsibility_id)}) given person's responsibility ID: {resp_of_a_person} (type of {type(resp_of_a_person)})")
                 _wanted_found = False
 
-                # TODO This is VERY adhoc. Better solution is preferred.
-                # Problem aimed: In the input data, "Leader" only exists in a requirement of the days
-                #   (i.e. in the input data, no person is defined as "Leader". This would result in
-                #   a leader never been assigned with the implementations where a leader can be assigned
-                #   only when the person's responsibility level is also a leader.
-                # Proposed solution: Only when the required responsibility is "Leader AND when a person's responsibility in the intput data is "COMMITTEE",
-                #   replace the person's responsibility level with a leader.
-                #   The replaced responsibility level must be reverted at the end of the loop.
                 _org_resp_of_a_person = resp_of_a_person
                 if required_responsibility_id == RespLvl.LEADER:
                     if (resp_of_a_person.id == RespLvl.COMMITTEE) and ((requirements.type_duty == Roles_Definition.SAFETY_COMMITEE) or 

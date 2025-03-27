@@ -19,6 +19,7 @@ from typing import List, Tuple
 
 from matching.players import Player
 
+from gj.grade_class import GjGrade
 from gj.responsibility import Responsibility
 from gj.responsibility import ResponsibilityLevel as RespLvl
 from n_to_n_matching.person_player import PersonPlayer
@@ -40,6 +41,7 @@ class WorkDate(Player):
     ATTR_LIST_ASSIGNED_COMMITTEE = "assignees_committee"
     ATTR_LIST_ASSIGNED_GENERAL = "assignees_general"
     ATTR_DUTY_TYPE = "duty_type"
+    ATTR_EXEMPT_GRADE = "exempted_grade"
 
     REQ_INTERVAL_ASSIGNEDDATES_LEADER = "req_interval_assigneddates_leader"
     REQ_INTERVAL_ASSIGNEDDATES_COMMITTE = "req_interval_assigneddates_commitee"
@@ -56,7 +58,8 @@ class WorkDate(Player):
                  req_num_noncommittee=1,
                  assignee_leader: List[PersonPlayer]=None,
                  assignee_commitee: List[PersonPlayer]=None,
-                 assignee_noncommitee: List[PersonPlayer]=None):
+                 assignee_noncommitee: List[PersonPlayer]=None,
+                 exempt_conditions: List[GjGrade]=None):
         """
         @param datestr: For now this needs to be "yyyy-mm-dd" format.
         @type assignees: [PersonPlayer] TBD this no longer exists?
@@ -77,6 +80,7 @@ class WorkDate(Player):
         self._assignees_leader = assignee_leader if assignee_leader else []
         self._assignees = assignee_commitee if assignee_commitee else []
         self._assignees_noncommittee = assignee_noncommitee if assignee_noncommitee else []
+        self._exempt_conditions = exempt_conditions
 
     def set_date(self, datestr):
         """
@@ -198,3 +202,7 @@ class WorkDate(Player):
         
     def total_assignees_num(self) -> int:
         return len(self.assignees_leader) + len(self.assignees_committee) + len(self.assignees_noncommittee)
+
+    @property
+    def exempt_conditions(self) -> List[GjGrade]:
+        return self._exempt_conditions
