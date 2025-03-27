@@ -25,6 +25,7 @@ class Roles_Definition(Enum):
     """
     GAKYU_COMMITEE = "学級委員"
     GYOJI_COMMITEE = "行事委員"
+    HOKEN_COMMITEE = "保健委員"
     PHOTO_CLUE = "カメラ担当"
     SAFETY_COMMITEE = "安全対策委員"
     TOSHO_COMMITEE = "図書委員"
@@ -32,6 +33,19 @@ class Roles_Definition(Enum):
     UNDOKAI_COMMITEE = "運動会委員"
     TOUBAN_COMMITEE = "当番作成委員"        
     UNDEFINED = "-1"
+
+
+class Roles_ID(Enum):
+    """
+    @summry `ID` is not accurate. Re-defining roles with alphabet, primarilly for commandlien input.
+    @todo Maintaining `Roles_ID` and `Roles_Definition` separately is very redundant for no good reasons.
+    """
+    ANZEN = "anzen"
+    HOKEN = "hoken"
+    TOSHO = "tosho"
+    
+    def __str__(self):
+        return self.value
 
 
 class Role():

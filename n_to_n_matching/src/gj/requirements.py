@@ -17,6 +17,7 @@
 import datetime
 from typing import List
 
+from gj.role import Roles_Definition
 from n_to_n_matching.workdate_player import WorkDate
 
 class Consts():
@@ -30,25 +31,26 @@ class DateRequirement():
     ATTR_SECTION = "Requirement"
 
     def __init__(self,
-                 type_duty,
                  dates: List[WorkDate],
+                 type_duty: Roles_Definition,
                  interval_assigneddates_leader=3,
                  interval_assigneddates_commitee=4,
-                 interval_assigneddates_general=5):
-        """
-        @type type_match: `Roles_Definition` intenum.
-        """
+                 interval_assigneddates_general=5,
+                 num_leaders=1,
+                 num_committee=2,
+                 num_general=2,
+                 ):
         self._type_duty = type_duty
         self._dates = dates
         self._interval_assigneddates_leader = interval_assigneddates_leader
         self._interval_assigneddates_commitee = interval_assigneddates_commitee
         self._interval_assigneddates_general = interval_assigneddates_general
+        self._num_leaders = num_leaders
+        self._num_committee = num_committee
+        self._num_general = num_general
 
     @property
-    def type_duty(self):
-        """
-        @rtype type_match: `Roles_Definition` intenum.
-        """
+    def type_duty(self) -> Roles_Definition:
         return self._type_duty
 
     @type_duty.setter
@@ -101,3 +103,15 @@ class DateRequirement():
     @interval_assigneddates_general.setter
     def interval_assigneddates_general(self, val):
         raise ValueError(self._MSG_SETTER_NOTALlOWED)
+
+    @property
+    def num_leaders(self) -> int:
+        return self._num_leaders
+
+    @property
+    def num_committee(self) -> int:
+        return self._num_committee
+
+    @property
+    def num_general(self) -> int:
+        return self._num_general

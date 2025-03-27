@@ -22,9 +22,9 @@ from typing import Dict, List, Tuple
 from matching import BaseGame
 from matching.exceptions import PlayerExcludedWarning
 
-from gj.responsibility import Committeer, GenGuardian, Leader, Responsibility, ResponsibilityLevel
+from gj.responsibility import Responsibility, ResponsibilityLevel
 from gj.requirements import DateRequirement
-from gj.role import Role, Roles_Definition
+from gj.role import Roles_Definition, Roles_ID
 from gj.util import GjUtil
 from n_to_n_matching.gj_rsc_matching import GjVolunteerMatching
 from n_to_n_matching.person_player import (AssignedDate,
@@ -155,7 +155,7 @@ class GjVolunteerAllocationGame(BaseGame):
         # (so the `days_interval` will be 0).
         _last_assigned_date = person.last_assigned_date if person.last_assigned_date else None
         days_interval = (date_wd.date - _last_assigned_date.date).days if _last_assigned_date else 9999  # Setting arbitrarily impossibly large interval
-        self._logger.warning(f"**Assigning responsibility** {person.id=}: {person.last_assigned_date=}, {date_wd.date=}, {responsibility=}, {req_space_days=}, {days_interval=}")
+        self._logger.debug(f"**Assigning responsibility** {person.id=}: {person.last_assigned_date=}, {date_wd.date=}, {responsibility=}, {req_space_days=}, {days_interval=}")
         if days_interval <= req_space_days:
             raise ValueError(f"""
                              Can't assign the person (ID={self.responsibility_id}) on {date_assigned} as this person must wait for {req_space_days} days
@@ -203,6 +203,7 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
             # while a singular date is passed to this method. I guess this "smells"...
             self._dates,
             person_bank,
+            requirements,
             logger=self._logger)
         _persons = _free_ppl
         if overbook:
@@ -215,10 +216,25 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
                 # TODO 20250305 Should call `assign_responsibility` per each resplvl
                 self.assign_responsibility(date, person, responsibility_id, req_space_days, requirements)
             except ValueError as e:
-                self._logger.warning(f"Skipping {person.id =} for this role, continuing.")
+                self._logger.debug(f"Skipping {person.id =} for this role, continuing.")
                 self._logger.debug(f"Error received: {str(e)}.")
                 continue
         return date
+
+    def _extract_roles(self, person_bank: PersonBank, exempted_roles: List[Roles_Definition]) -> PersonBank:
+            # For Tosho, the assignable persons are either those in Tosho Committee or general
+            # Therefore, removing Safety committee members.
+            _extracted_persons: List[PersonPlayer] = []
+            for pid, pobj in person_bank.persons.items():
+                self._logger.debug(f"175 {pobj=}, roles: {GjUtil.str_ids(pobj.roles)}")
+                _role_ids = [role.id for role in pobj.roles]
+                self._logger.debug(f"174 {_role_ids=}. Btw {Roles_Definition.SAFETY_COMMITEE=}")
+                if any((role.id in [role_def.value for role_def in exempted_roles]) for role in pobj.roles):
+                    self._logger.info(f"177 Skipping {pobj=} as their role {pobj.roles=} does't match the requirement.")
+                    continue
+                _extracted_persons.append(pobj)
+            _person_bank_with_extracted_persons = PersonBank(_extracted_persons, person_bank.max_allowance)
+            return _person_bank_with_extracted_persons
 
     def _assign_day(self,
             date: WorkDate,
@@ -229,27 +245,23 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
         @summry: Assigning a person on a single day, for which ALL the responsibilities required.
           TBD Clarify if the all required slots per responsibility for the day are filled by this or not.
         """
-        req_responsibilities = []
-                
-        if requirements.type_duty == Roles_Definition.TOSHO_COMMITEE:
-            req_responsibilities = [ResponsibilityLevel.GENERAL, ResponsibilityLevel.COMMITTEE, ResponsibilityLevel.LEADER]
+        req_responsibilities = []  # TODO This is a candidate to be moved to the requirement file
 
+        self._logger.debug(f"180{requirements.type_duty=}, {Roles_Definition.TOSHO_COMMITEE=}")
+        if requirements.type_duty == Roles_Definition.TOSHO_COMMITEE:
             ### BEGIN: Very adhoc, NEEDS better design ###
             # For Tosho, the assignable persons are either those in Tosho Committee or general
             # Therefore, removing Safety committee members.
-            _tosho_persons: List[PersonPlayer] = []
-            for pid, pobj in person_bank.persons.items():
-                self._logger.debug(f"175 {pobj=}, roles: {GjUtil.str_ids(pobj.roles)}")
-                _role_ids = [role.id for role in pobj.roles]
-                self._logger.debug(f"174 {_role_ids=}. Btw {Roles_Definition.SAFETY_COMMITEE=}")
-                if any(Roles_Definition.SAFETY_COMMITEE.value == role.id for role in pobj.roles):
-                    self._logger.info(f"177 Skipping {pobj=} as it's SAFETY committee")
-                    continue
-                _tosho_persons.append(pobj)
-            person_bank = PersonBank(_tosho_persons, person_bank.max_allowance)
+            person_bank = self._extract_roles(person_bank, [Roles_Definition.HOKEN_COMMITEE, Roles_Definition.SAFETY_COMMITEE])
             ### END: Very adhoc, NEEDS better design ###
+            req_responsibilities = [ResponsibilityLevel.GENERAL, ResponsibilityLevel.COMMITTEE, ResponsibilityLevel.LEADER]
+        elif requirements.type_duty == Roles_Definition.HOKEN_COMMITEE:
+            self._logger.debug(f"181 Hoken selected")
+            person_bank = self._extract_roles(person_bank, [Roles_Definition.SAFETY_COMMITEE, Roles_Definition.TOSHO_COMMITEE])
+            req_responsibilities = [ResponsibilityLevel.GENERAL, ResponsibilityLevel.LEADER]  # For Hoken, there's only leader or general guardians.
         elif requirements.type_duty == Roles_Definition.SAFETY_COMMITEE:
-            req_responsibilities = [ResponsibilityLevel.GENERAL, ResponsibilityLevel.LEADER]
+            person_bank = self._extract_roles(person_bank, [Roles_Definition.HOKEN_COMMITEE, Roles_Definition.TOSHO_COMMITEE])
+            req_responsibilities = [ResponsibilityLevel.GENERAL, ResponsibilityLevel.LEADER]  # For Hoken, there's only leader or general guardians.
         else:
             raise ValueError(f"{requirements.type_duty=} were not identified. Returning.")
 
@@ -273,7 +285,7 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
     def assign_person(self, 
                       date: WorkDate,
                       person_bank: PersonBank,
-                      requirements: DateRequirement=None,
+                      requirements: DateRequirement,
                       overbook=True):
         """
         @summary: Assign a person taken from the `person_bank` obj. The status of assignment is kept tracked in
@@ -289,8 +301,7 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
         """
         self._logger.info(f"Began assigning {date.date =}")
         if not requirements:
-            self._logger.warning("Requirement was not passed. Using default.")
-            requirements = DateRequirement()
+            raise ValueError("Requirement was not passed. It is cruical to this application.")
 
         # Assign a personnel taken from `free_workers`. Once done, update the `free_workers`.
         date = self._assign_day(date, person_bank, requirements)
@@ -302,7 +313,7 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
             date = self._assign_day(date, person_bank, requirements, overbook=True)
 
     def _log_date_content(self, date, msg_prefix=""):
-        self._logger.info(f"{msg_prefix} Date={date.date} assignees stored. Leader: {date.assignees_leader}, Committee: {date.assignees_committee}, Non-commitee: {date.assignees_noncommittee}")
+        self._logger.debug(f"{msg_prefix} Date={date.date} assignees stored. Leader: {date.assignees_leader}, Committee: {date.assignees_committee}, Non-commitee: {date.assignees_noncommittee}")
 
     def match(
             self,
@@ -378,7 +389,11 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
 
     @classmethod
     def create_from_dict_dates(
-        cls, dates_prefs, clean=False, logger_obj: logging.Logger=None) -> Tuple[List[WorkDate], DateRequirement]:
+        cls,
+        dates_prefs,
+        clean=False,
+        logger_obj: logging.Logger=None,
+        role: Roles_ID=Roles_ID.TOSHO) -> Tuple[List[WorkDate], DateRequirement]:
         """
         @summary: Input data converter from text-based (dictionary in .yaml) format to Python format.
           Only required attribute in each element in `dates_prefs` is `date` (i.e. other attributes are optional).
@@ -401,30 +416,43 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
         if WorkDate.ATTR_SECTION not in dates_prefs:
             raise ValueError(f"A required section '{WorkDate.ATTR_SECTION}' in the input file is missing.")
 
-        logger_obj.info(f"{dates_prefs = }")
+        # TODO This is s*upid if clause. Should `Roles_ID` and `Roles_Definition` be attempted to be consolidated.
+        if role == Roles_ID.ANZEN.value:
+            role_def = Roles_Definition.SAFETY_COMMITEE
+        elif role == Roles_ID.HOKEN.value:
+            role_def = Roles_Definition.HOKEN_COMMITEE        
+        else:
+            role_def = Roles_Definition.TOSHO_COMMITEE
+      
         # If date requirement is included in the input.
         if DateRequirement.ATTR_SECTION in dates_prefs:
             dates_dict = dates_prefs[DateRequirement.ATTR_SECTION]
             requirement = DateRequirement(
-                dates_dict.get(WorkDate.ATTR_DUTY_TYPE, Roles_Definition.TOSHO_COMMITEE),
-                dates_dict.get(WorkDate.REQ_INTERVAL_ASSIGNEDDATES_LEADER, -1),
-                dates_dict.get(WorkDate.REQ_INTERVAL_ASSIGNEDDATES_COMMITTE, -1),
-                dates_dict.get(WorkDate.REQ_INTERVAL_ASSIGNEDDATES_GENERAL, -1),
+                dates=dates_dict,
+                type_duty=dates_dict.get(WorkDate.ATTR_DUTY_TYPE, role_def),
+                interval_assigneddates_leader=dates_dict.get(WorkDate.REQ_INTERVAL_ASSIGNEDDATES_LEADER, -1),
+                interval_assigneddates_commitee=dates_dict.get(WorkDate.REQ_INTERVAL_ASSIGNEDDATES_COMMITTE, -1),
+                interval_assigneddates_general=dates_dict.get(WorkDate.REQ_INTERVAL_ASSIGNEDDATES_GENERAL, -1),
+                num_leaders=dates_dict.get(WorkDate.ATTR_NUM_LEADER),  # `ATTR_NUM_*` cannot be empty in the input data so no default value passed.
+                num_committee=dates_dict.get(WorkDate.ATTR_NUM_COMMITTEE),
+                num_general=dates_dict.get(WorkDate.ATTR_NUM_GENERAL),
             )
         else:
-            logger_obj.warning(f"Requirement is missing. Moving on with default value.")
+            logger_obj.error(f"Requirement is missing. Moving on with default value.")
             requirement = DateRequirement()
 
         _dates = [WorkDate(datestr=date[WorkDate.ATTR_DATE],
                            school_off=date.get(WorkDate.ATTR_SCHOOL_OFF, False),
-                           req_num_leader=date.get(WorkDate.ATTR_NUM_LEADER, WorkDate.DEFAULT_PERDAY_LEADER),
-                           req_num_committee=date.get(WorkDate.ATTR_NUM_COMMITTEE, WorkDate.DEFAULT_PERDAY_COMMITTEE),
-                           req_num_noncommittee=date.get(WorkDate.ATTR_NUM_GENERAL, WorkDate.DEFAULT_PERDAY_GENERAL)
+                           req_num_leader=date.get(WorkDate.ATTR_NUM_LEADER, requirement.num_leaders),
+                           req_num_committee=date.get(WorkDate.ATTR_NUM_COMMITTEE, requirement.num_committee),
+                           req_num_noncommittee=date.get(WorkDate.ATTR_NUM_GENERAL, requirement.num_general)
                            ) for date in dates_prefs[WorkDate.ATTR_SECTION]]
         requirement.dates = _dates
         # Find the earliest date in the given dates in order for that date to be the beginning of the given period.
         _date_earliest = min(date.date for date in _dates)
         requirement.date_earliest = _date_earliest
+        logger_obj.debug(f"050 {dates_prefs=}")
+        logger_obj.info(f"051 {role=}, {role_def=}, {requirement.type_duty=}")
 
         return _dates, requirement
 
@@ -458,7 +486,7 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
 
     @classmethod
     def create_from_dictionaries(
-            cls, dates_prefs, personnel_prefs, clean=False):
+            cls, dates_prefs, personnel_prefs, clean=False, role: Roles_ID=Roles_ID.TOSHO):
         """
         @summary: Input data converter from text-based (dictionary in .yaml) format to Python format.
           Or to see it from a different angle, this is a constructor https://realpython.com/instance-class-and-static-methods-demystified/#delicious-pizza-factories-with-classmethod
@@ -467,14 +495,14 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
         @param personnel_prefs: List particularly made by .yaml input.
         @rtype: matching.BaseGame
         """
-        _dates, _reqs = GjVolunteerAllocationGame.create_from_dict_dates(dates_prefs, clean=clean)
+        _dates, _reqs = GjVolunteerAllocationGame.create_from_dict_dates(dates_prefs, clean=clean, role=role)
         _persons = GjVolunteerAllocationGame.create_from_dict_persons(personnel_prefs, clean=clean)
         game = cls(_dates, PersonBank(_persons), _reqs, clean)
         return game
 
     @classmethod
     def create_from_dictionaries_2(
-            cls, dates_prefs, persons_obj, clean=False):
+            cls, dates_prefs, persons_obj, clean=False, role: Roles_ID=Roles_ID.HOKEN):
         """
         @summary: Input data converter from text-based (dictionary in .yaml) format to Python format.
           Or to see it from a different angle, this is a constructor https://realpython.com/instance-class-and-static-methods-demystified/#delicious-pizza-factories-with-classmethod
@@ -483,7 +511,8 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
         @param personnel_prefs: List particularly made by .yaml input.
         @rtype: GjVolunteerAllocationGame (child class of `matching.BaseGame`)
         """
-        _dates, _reqs = GjVolunteerAllocationGame.create_from_dict_dates(dates_prefs, clean=clean)
+        print(f"066 {role=}")
+        _dates, _reqs = GjVolunteerAllocationGame.create_from_dict_dates(dates_prefs, clean=clean, role=role)
         game = cls(_dates, persons_obj, _reqs, clean)
         return game
 

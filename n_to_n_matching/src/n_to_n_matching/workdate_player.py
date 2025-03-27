@@ -141,10 +141,7 @@ class WorkDate(Player):
     def school_off(self):
         return self._school_off
 
-    def get_required_persons(self):
-        """
-        @rtype: int, int, int
-        """
+    def get_required_persons(self) -> Tuple[int, int, int]:
         needed_leader, needed_committee, needed_general = 0, 0, 0
         needed_leader += self.req_num_leader
         needed_committee += self.req_num_assignee_committee
