@@ -22,6 +22,7 @@ from typing import Dict, List, Tuple
 from matching import BaseGame
 from matching.exceptions import PlayerExcludedWarning
 
+from gj.grade_class import GjGrade, GjGradeGroup, GradeUtil
 from gj.responsibility import Responsibility, ResponsibilityLevel
 from gj.requirements import DateRequirement
 from gj.role import Roles_Definition, Roles_ID
@@ -212,6 +213,13 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
 
         _persons_randomized = sorted(_persons, key=lambda x: random.random())
         for person in _persons_randomized:
+
+            # Check if there's any exemption condition for the `person`
+            self._logger.debug(f"173 {person=}, {person.grade_class=} {date.exempt_conditions=} on {date=}.")
+            if date.exempt_conditions and (GradeUtil.included_grade(person.grade_class, date.exempt_conditions)):
+                self._logger.info(f"172 Skipping {person.id =} due to the exemption rule: {date.exempt_conditions=} on {date=}.")
+                continue
+
             try:
                 # TODO 20250305 Should call `assign_responsibility` per each resplvl
                 self.assign_responsibility(date, person, responsibility_id, req_space_days, requirements)
@@ -438,14 +446,14 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
                 num_general=dates_dict.get(WorkDate.ATTR_NUM_GENERAL),
             )
         else:
-            logger_obj.error(f"Requirement is missing. Moving on with default value.")
-            requirement = DateRequirement()
+            raise ValueError(f"Requirement is missing in the input data {dates_prefs=}.\n Without the requirement passed, the app cannot function as intended.")
 
         _dates = [WorkDate(datestr=date[WorkDate.ATTR_DATE],
                            school_off=date.get(WorkDate.ATTR_SCHOOL_OFF, False),
                            req_num_leader=date.get(WorkDate.ATTR_NUM_LEADER, requirement.num_leaders),
                            req_num_committee=date.get(WorkDate.ATTR_NUM_COMMITTEE, requirement.num_committee),
-                           req_num_noncommittee=date.get(WorkDate.ATTR_NUM_GENERAL, requirement.num_general)
+                           req_num_noncommittee=date.get(WorkDate.ATTR_NUM_GENERAL, requirement.num_general),
+                           exempt_conditions=date.get(WorkDate.ATTR_EXEMPT_GRADE, None),
                            ) for date in dates_prefs[WorkDate.ATTR_SECTION]]
         requirement.dates = _dates
         # Find the earliest date in the given dates in order for that date to be the beginning of the given period.

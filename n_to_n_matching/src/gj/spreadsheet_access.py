@@ -18,6 +18,7 @@ from abc import ABC, abstractmethod
 import openpyxl as pyxl
 from openpyxl.cell.cell import Cell as pyxl_Cell
 
+from gj.grade_class import GjGrade, GradeUtil
 from gj.responsibility import Responsibility, ResponsibilityLevel
 from gj.role import Role, Roles_Definition
 from gj.util import GjUtil
@@ -285,7 +286,7 @@ class GjToubanAccess:
                 name =_student_fullname,
                 email_addr = row.email_emergency,
                 phone_num = row.phone_emergency,
-                grade_class = row.grade_class,
+                grade_class = GradeUtil.find_grade(row.grade_class),  # For Grade/Class there's a designated Python class so match the input to one.
                 roles=[a_role],
                 # 2024/08 'children_ids' attribute was originally created without the knowledge of how students/guardians are 
                 # grouped into a family info. Now that it's more known, 'children_ids' doesn't seem to be needed, hence
