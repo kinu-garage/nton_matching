@@ -21,6 +21,7 @@ from gj.printing import GjDocx
 from gj.requirements import DateRequirement
 from gj.responsibility import ResponsibilityLevel
 from gj.role import Role, Roles_Definition, Roles_ID
+from gj.spreadsheet_access import GjRowEntity
 from gj.spreadsheet_access import GjToubanAccess2024 as GTA
 from n_to_n_matching.match_game import GjVolunteerAllocationGame
 from n_to_n_matching.person_player import PersonPlayer
@@ -433,26 +434,49 @@ def fixture_dates_1():
     ])
     return dates
 
-def fixture_dates_hoken_0():
-    reqs = requirement_set_0(duty_type=Roles_Definition.HOKEN_COMMITEE)
-    dates = fixture_dates_1()
+def fixture_dates_20250322():
+    return {
+        WorkDate.ATTR_SECTION: [
+            { WorkDate.ATTR_DATE: "2025-04-12", },
+            { WorkDate.ATTR_DATE: "2025-04-19", },
+            { WorkDate.ATTR_DATE: "2025-04-26", },
+            { WorkDate.ATTR_DATE: "2025-05-03", },
+            { WorkDate.ATTR_DATE: "2025-05-10", },
+            { WorkDate.ATTR_DATE: "2025-05-17", },
+            { WorkDate.ATTR_DATE: "2025-05-24", },
+            { WorkDate.ATTR_DATE: "2025-05-31", },
+            { WorkDate.ATTR_DATE: "2025-06-07", },
+            { WorkDate.ATTR_DATE: "2025-06-14", },
+        ]}
+
+def fixture_dates_20250503():
+    return {
+        WorkDate.ATTR_SECTION: [
+            { WorkDate.ATTR_DATE: "2025-08-02", },
+            { WorkDate.ATTR_DATE: "2025-08-09", },
+            { WorkDate.ATTR_DATE: "2025-08-16", },
+            { WorkDate.ATTR_DATE: "2025-08-23", },
+            { WorkDate.ATTR_DATE: "2025-08-30", },
+            { WorkDate.ATTR_DATE: "2025-09-06", },
+            { WorkDate.ATTR_DATE: "2025-09-13", },
+            { WorkDate.ATTR_DATE: "2025-09-20", },
+            { WorkDate.ATTR_DATE: "2025-09-27", },
+        ]}
+
+def _fixture_dates_per_role(duty_type, dates):
+    reqs = requirement_set_0(duty_type)
     dal = {DateRequirement.ATTR_SECTION: reqs}
     dal[WorkDate.ATTR_SECTION] = dates[WorkDate.ATTR_SECTION]
     return dal
 
-def fixture_dates_anzen_0():
-    reqs = requirement_set_0(duty_type=Roles_Definition.SAFETY_COMMITEE)
-    dates = fixture_dates_1()
-    dal = {DateRequirement.ATTR_SECTION: reqs}
-    dal[WorkDate.ATTR_SECTION] = dates[WorkDate.ATTR_SECTION]
-    return dal
+def fixture_dates_hoken_0(dates):
+    return _fixture_dates_per_role(duty_type=Roles_Definition.HOKEN_COMMITEE, dates=dates)
 
-def fixture_dates_tosho_0():
-    reqs = requirement_set_0(duty_type=Roles_Definition.TOSHO_COMMITEE)
-    dates = fixture_dates_1()
-    dal = {DateRequirement.ATTR_SECTION: reqs}
-    dal[WorkDate.ATTR_SECTION] = dates[WorkDate.ATTR_SECTION]
-    return dal
+def fixture_dates_anzen_0(dates):
+    return _fixture_dates_per_role(duty_type=Roles_Definition.SAFETY_COMMITEE, dates=dates)
+
+def fixture_dates_tosho_0(dates):
+    return _fixture_dates_per_role(duty_type=Roles_Definition.TOSHO_COMMITEE, dates=dates)
 
 def test_1(guardian_input):
     #dates_input = Util.read_yaml_to_dict(base_url, "dates.yml")
@@ -470,18 +494,24 @@ def test_2():
 
     test_1(guardian_input)
 
-def test_3(path_touban_master_sheet, output_path="/cws/src/130s/nton_matching", role: Roles_ID=Roles_ID.TOSHO):
+def test_3(path_touban_master_sheet, sheet_name, output_path="/cws/src/130s/nton_matching", role: Roles_ID=Roles_ID.TOSHO):
     touban_accessor = GTA()  # TODO What is this?
-    guardian_input = touban_accessor.gj_xls_to_personobj(path_touban_master_sheet)
+    guardian_input = touban_accessor.gj_xls_to_personobj(
+        path_touban_master_sheet, sheet_name=sheet_name, row_spec=GjRowEntity.COL_TITLE_IDS_20250503)
+    dates = fixture_dates_20250503()
+    _ROLE_CHOSEN = "(担当当番名)"
     if role == Roles_ID.TOSHO.value:
-        dates_input = fixture_dates_tosho_0()
-        _paragraph = Roles_Definition.TOSHO_COMMITEE.value
+        dates_input = fixture_dates_tosho_0(dates=dates)
+        _paragraph = ""
+        _ROLE_CHOSEN = Roles_Definition.TOSHO_COMMITEE.value
     elif role == Roles_ID.HOKEN.value:
         dates_input = fixture_dates_hoken_0()
-        _paragraph = Roles_Definition.HOKEN_COMMITEE.value
+        _paragraph = ""
+        _ROLE_CHOSEN = Roles_Definition.HOKEN_COMMITEE.value
     elif role == Roles_ID.ANZEN.value:
         dates_input = fixture_dates_anzen_0()
-        _paragraph = Roles_Definition.SAFETY_COMMITEE.value
+        _paragraph = ""
+        _ROLE_CHOSEN = Roles_Definition.SAFETY_COMMITEE.value
 
     print(f"064 {role=}")
     solution = GjVolunteerAllocationGame.create_from_dictionaries_2(
@@ -489,4 +519,4 @@ def test_3(path_touban_master_sheet, output_path="/cws/src/130s/nton_matching", 
     GjVolunteerAllocationGame.print_tabular_stdout(solution)
 
     docx_gen = GjDocx(output_path)
-    docx_gen.print_distributable(solution=solution, requirements=solution.reqs, heading1="202404-06当番予定表", paragraph=_paragraph)
+    docx_gen.print_distributable(solution=solution, requirements=solution.reqs, heading1=f"202508-09当番予定表: {_ROLE_CHOSEN}", paragraph=_paragraph)

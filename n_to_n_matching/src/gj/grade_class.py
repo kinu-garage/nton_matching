@@ -70,8 +70,12 @@ class GjGradeGroup(Enum):
 
 class GradeUtil():
     @staticmethod
-    def find_grade(grade: str) -> GjGrade:
+    def find_grade(grade: str, logger=None) -> GjGrade:
+        if not logger:
+            logger = NtonUtil.get_logger()
+        
         for gr in GjGrade:
+            logger.debug(f"Given grade: {grade}")
             if grade == gr.value:
                 return gr
         return None

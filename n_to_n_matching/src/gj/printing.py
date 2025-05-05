@@ -71,6 +71,7 @@ class GjDocx():
             row_obj[4].text = str(person)
             row_obj[5].text = person.phone_num
             row_id += 1
+            self._logger.debug(f"grade-class: {person.grade_class}")
         if not increment_at_end:
             row_id -= 1
         return row_id
@@ -84,7 +85,7 @@ class GjDocx():
             timestamp: str=""):
 
         # TODO This might need to be flexible
-        TABLE_TOP_ROW = ["日付", "順", "担当", "学年 (2024年度)", "生徒氏名", "電話番号"]
+        TABLE_TOP_ROW = ["日付", "順", "担当", "学級", "生徒氏名", "電話番号"]
 
         # `_table_header_length` is 1 because the header row is the one contains`TABLE_TOP_ROW` and no other rows.
         # TODO This might have to be flexible in the future.

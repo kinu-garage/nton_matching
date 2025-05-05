@@ -144,7 +144,7 @@ class SpreadsheetRow():
         self._is_title_row = is_title_row
 
     @property
-    def cells(self):
+    def cells(self) -> pyxl_Cell:
         return self._cells
 
     @cells.setter
