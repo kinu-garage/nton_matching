@@ -213,11 +213,10 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
 
         _persons_randomized = sorted(_persons, key=lambda x: random.random())
         for person in _persons_randomized:
-
-            # Check if there's any exemption condition for the `person`
+            # Check if there's any exemption condition for the `person` e.g. certain grade-class is exempted on this day (parents' meeting day).
             self._logger.debug(f"173 {person=}, {person.grade_class=} {date.exempt_conditions=} on {date=}.")
             if date.exempt_conditions and (GradeUtil.included_grade(person.grade_class, date.exempt_conditions)):
-                self._logger.info(f"172 Skipping {person.id =} due to the exemption rule: {date.exempt_conditions=} on {date=}.")
+                self._logger.debug(f"172 Skipping {person.id =} due to the exemption rule: {date.exempt_conditions=} on {date=}.")
                 continue
 
             try:

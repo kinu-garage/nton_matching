@@ -42,11 +42,13 @@ class GjGrade(Enum):
     ELEM_SHOU_6_1 = "小6－1"
     ELEM_SHOU_6_2 = "小6－2"
     ELEM_SHOU_6_3 = "小6－3"
-    MIDD_CHUU_1 = "中1"
-    MIDD_CHUU_2 = "中2"
-    MIDD_CHUU_3 = "中3"
-    HIGH_KOU_1 = "高1"
-    HIGH_KOU_2 = "高2"
+    MIDD_CHUU_1_1 = "中1－1"
+    MIDD_CHUU_1_2 = "中1－2"
+    MIDD_CHUU_2_1 = "中2－1"
+    MIDD_CHUU_2_2 = "中2－2"
+    MIDD_CHUU_3_1 = "中3－1"
+    HIGH_KOU_1_1 = "高1－1"
+    HIGH_KOU_2_1 = "高2－1"
 
     def __str__(self):
         return self.value
@@ -63,8 +65,8 @@ class GjGradeGroup(Enum):
     ELEM_SHOU_LOWER = [ELEM_SHOU_1STG, ELEM_SHOU_2STG, ELEM_SHOU_3STG]
     ELEM_SHOU_UPPER = [ELEM_SHOU_4STG, ELEM_SHOU_5STG, ELEM_SHOU_6STG]
     ELEM_SHOU = [ELEM_SHOU_LOWER, ELEM_SHOU_UPPER]
-    MIDD_CHUU = [GjGrade.MIDD_CHUU_1, GjGrade.MIDD_CHUU_2, GjGrade.MIDD_CHUU_3]
-    HIGH_KOU = [GjGrade.HIGH_KOU_1, GjGrade.HIGH_KOU_2]
+    MIDD_CHUU = [GjGrade.MIDD_CHUU_1_2, GjGrade.MIDD_CHUU_1_2, GjGrade.MIDD_CHUU_2_1, GjGrade.MIDD_CHUU_2_2, GjGrade.MIDD_CHUU_3_1]
+    HIGH_KOU = [GjGrade.HIGH_KOU_1_1, GjGrade.HIGH_KOU_2_1]
     MIDD_HIGH_CHUKOU = [MIDD_CHUU, HIGH_KOU]
 
 
@@ -83,6 +85,7 @@ class GradeUtil():
     @staticmethod
     def included_grade(in_grade: GjGrade, group, logger=None) -> bool:
         """
+        @summary Judge if the given `in_grade` is included in the given `group`.
         @param group: The type can be either `GjGradeGroup`, `GjGrade`, or `str`.
         """
         if not logger:
@@ -96,27 +99,27 @@ class GradeUtil():
         elif isinstance(group, List):  # This if clause is checking `List[GjGradeGroup]`,
                                      # but just checking `List` avoiding Python's complaints.
             if (in_grade in group):
-                logger.info("88")
+                logger.debug("88")
                 _included = True
             else:
-                logger.info("89")
+                logger.debug("89")
                 for subgroup in group:
-                    logger.info("87")
+                    logger.debug("87")
                     _included = GradeUtil.included_grade(in_grade, subgroup)
                     if _included:
-                        logger.info("86")
+                        logger.debug("86")
                         break
         elif isinstance(group, GjGrade):
             subgroups: List[GjGrade] = group.value
             logger.debug("85")
             if in_grade == subgroups:
-                logger.info("84")
+                logger.debug("84")
                 _included = True
             return _included
         elif isinstance(group, str):
             logger.debug("83")
             if in_grade.value == group:
-                logger.info("82")
+                logger.debug("82")
                 _included = True
             return _included
 

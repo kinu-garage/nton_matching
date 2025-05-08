@@ -354,6 +354,8 @@ class GjToubanAccess:
   
             # TODO Not fully sure if 'exempted_on' is the correct selection.
             #responsibility = GjUtil.gen_responsibility(row.exempted_on)
+            if not row.grade_class:
+                self._logger.warning(f"Grade/Class is empty at {_row_count=}.")
             self._logger.debug(f"Grade: {row.grade_class}")
             person = PersonPlayer(
                 id =_family_id_in_sheet,
