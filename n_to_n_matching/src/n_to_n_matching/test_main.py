@@ -452,15 +452,13 @@ def fixture_dates_20250322():
 def fixture_dates_20250503():
     return {
         WorkDate.ATTR_SECTION: [
+            { WorkDate.ATTR_DATE: "2025-06-07", },
             { WorkDate.ATTR_DATE: "2025-08-02", },
             { WorkDate.ATTR_DATE: "2025-08-09", },
             { WorkDate.ATTR_DATE: "2025-08-16", },
             { WorkDate.ATTR_DATE: "2025-08-23", },
             { WorkDate.ATTR_DATE: "2025-08-30", },
-            { WorkDate.ATTR_DATE: "2025-09-06", },
-            { WorkDate.ATTR_DATE: "2025-09-13", },
-            { WorkDate.ATTR_DATE: "2025-09-20", },
-            { WorkDate.ATTR_DATE: "2025-09-27", },
+
         ]}
 
 def _fixture_dates_per_role(duty_type, dates):

@@ -238,7 +238,7 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
                 _role_ids = [role.id for role in pobj.roles]
                 self._logger.debug(f"174 {_role_ids=}. Btw {Roles_Definition.SAFETY_COMMITEE=}")
                 if any((role.id in [role_def.value for role_def in exempted_roles]) for role in pobj.roles):
-                    self._logger.info(f"177 Skipping {pobj=} as their role {pobj.roles=} does't match the requirement.")
+                    self._logger.debug(f"177 Skipping {pobj=} as their role {pobj.roles=} does't match the requirement.")
                     continue
                 _extracted_persons.append(pobj)
             _person_bank_with_extracted_persons = PersonBank(_extracted_persons, person_bank.max_allowance)

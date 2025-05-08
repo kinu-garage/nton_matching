@@ -51,8 +51,8 @@ class GjRowEntity:
     COLTITLE_EMAIL_REGISTERED = "email_registered"
 
     COL_TITLE_IDS_20250503 = {
-        1: COLTITLE_ID_IN_SHEET,           # "No"
-        2: COLTITLE_GRADE_CLASS,           # "学年組"
+        2: COLTITLE_ID_IN_SHEET,           # "No"
+        3: COLTITLE_GRADE_CLASS,           # "学年組"
         4: COLTITLE_STUDENT_NAME,           # "氏名"
         5: COLTITLE_GUARDIAN_NAME,   # "保護者名"
         6: COLTITLE_PHONE_EMERGENCY,       # "当番用TEL"
@@ -126,7 +126,7 @@ class GjRowEntity:
                 #self._logger.debug(f"At {cell.row=}, Grade-Class is empty. Skipping this row.")
                 #return None
 
-            if (cell.row % 4 == 0) and (cell.row < 255) and (cell.value):  # This number is very adhoc
+            if (cell.row % 7 == 0) and (cell.row < 255) and (cell.value):  # This number is very adhoc
                 self._logger.info(f"{cell.row=}-{cell.column=}, {cell.value=}")
             cell_title = ""
             try:
@@ -151,13 +151,15 @@ class GjRowEntity:
 
     def _get_key_byval(self, dct: Dict[int, str], value: str) -> List[int]:
         """
+        @summary Return the corresponding key(s) from the dict that has the given `value`.
         @see https://stackoverflow.com/a/49353279/577001
         """
         return [key for key in dct if (dct[key] == value)]
 
     def _get_value_from_gj_row(self, col_id_str: str) -> str:
         """
-        @todo # TODO Identifying the column by specifying column ID is very adhoc. Need more standardized, robust way.
+        @param col_id_str: The title of the column in the given spreadsheet.
+          Internally look up the row ID database that must already be passed upon initializing the class.
         """
         col_ids = self._get_key_byval(self._row_spec, col_id_str)
         if 1 < len(col_ids):
@@ -166,7 +168,7 @@ class GjRowEntity:
         for cell in self._raw_row.cells:  # type(cell) == openpyxl.cell.cell.Cell
             self._logger.debug(f"{cell.column=}, {col_id=}")
             if cell.column == col_id:
-                self._logger.info(f"{cell.column=} == {col_id=}. {cell.value=}")
+                self._logger.debug(f"{cell.column=} == {col_id=}. {cell.value=}")
                 return cell.value
 
     @property

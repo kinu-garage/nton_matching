@@ -141,7 +141,7 @@ So if that .xlsx file is an input data for your appliaction, check to see if the
 
         for person_id, person in persons.persons.items():            
             resp_ids = [rid.id for rid in person.responsibilities if rid]
-            logger.info(f"person_id: {person_id}, {resp_ids=}")
+            logger.debug(f"person_id: {person_id}, {resp_ids=}")
             if RespLvl.COMMITTEE.value in resp_ids:
                 # As of 202408 the logic to assign 'leader' is unclear (this needs to be asked for the domain expert).
                 # TODO For now all 'committee' member gets 1 leader value, which won't work for sure
@@ -181,7 +181,7 @@ Ignoring {person_id=}, Person: {person}.")
             logger=None):
         if not logger:
             logger = GjUtil.get_logger()
-        logger.info(f"{msg_prefix}\n\tfree_workers {free_workers}\n\tfullybooked_workers {fullybooked_workers}\n\toverlybooked_workers {overlybooked_workers}")
+        logger.debug(f"{msg_prefix}\n\tfree_workers {free_workers}\n\tfullybooked_workers {fullybooked_workers}\n\toverlybooked_workers {overlybooked_workers}")
 
     @staticmethod
     def find_free_workers(
