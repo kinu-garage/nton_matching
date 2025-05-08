@@ -467,15 +467,6 @@ def _fixture_dates_per_role(duty_type, dates):
     dal[WorkDate.ATTR_SECTION] = dates[WorkDate.ATTR_SECTION]
     return dal
 
-def fixture_dates_hoken_0(dates):
-    return _fixture_dates_per_role(duty_type=Roles_Definition.HOKEN_COMMITEE, dates=dates)
-
-def fixture_dates_anzen_0(dates):
-    return _fixture_dates_per_role(duty_type=Roles_Definition.SAFETY_COMMITEE, dates=dates)
-
-def fixture_dates_tosho_0(dates):
-    return _fixture_dates_per_role(duty_type=Roles_Definition.TOSHO_COMMITEE, dates=dates)
-
 def test_1(guardian_input):
     #dates_input = Util.read_yaml_to_dict(base_url, "dates.yml")
     dates_input = fixture_dates_1()
@@ -499,16 +490,17 @@ def test_3(path_touban_master_sheet, sheet_name, output_path="/cws/src/130s/nton
     dates = fixture_dates_20250503()
     _ROLE_CHOSEN = "(担当当番名)"
     if role == Roles_ID.TOSHO.value:
-        dates_input = fixture_dates_tosho_0(dates=dates)
-        _paragraph = ""
+        dates_input = _fixture_dates_per_role(duty_type=Roles_Definition.TOSHO_COMMITEE, dates=dates)
+        _paragraph = "Test tosho"
         _ROLE_CHOSEN = Roles_Definition.TOSHO_COMMITEE.value
     elif role == Roles_ID.HOKEN.value:
-        dates_input = fixture_dates_hoken_0(dates=dates)
-        _paragraph = ""
+        dates_input = _fixture_dates_per_role(duty_type=Roles_Definition.HOKEN_COMMITEE, dates=dates)
+        _paragraph = "Test hoken"
         _ROLE_CHOSEN = Roles_Definition.HOKEN_COMMITEE.value
     elif role == Roles_ID.ANZEN.value:
-        dates_input = fixture_dates_anzen_0(dates=dates)
-        _paragraph = ""
+        dates_input = _fixture_dates_per_role(duty_type=Roles_Definition.SAFETY_COMMITEE, dates=dates)
+        dates_input[DateRequirement.ATTR_SECTION][WorkDate.ATTR_NUM_GENERAL] = 3
+        _paragraph = "Test anzen"
         _ROLE_CHOSEN = Roles_Definition.SAFETY_COMMITEE.value
 
     print(f"064 {role=}")

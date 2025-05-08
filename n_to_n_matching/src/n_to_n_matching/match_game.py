@@ -258,7 +258,7 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
         if requirements.type_duty == Roles_Definition.TOSHO_COMMITEE:
             ### BEGIN: Very adhoc, NEEDS better design ###
             # For Tosho, the assignable persons are either those in Tosho Committee or general
-            # Therefore, removing Safety committee members.
+            # Therefore, removing the members of other committees.
             person_bank = self._extract_roles(person_bank, [Roles_Definition.HOKEN_COMMITEE, Roles_Definition.SAFETY_COMMITEE])
             ### END: Very adhoc, NEEDS better design ###
             req_responsibilities = [ResponsibilityLevel.GENERAL, ResponsibilityLevel.COMMITTEE, ResponsibilityLevel.LEADER]

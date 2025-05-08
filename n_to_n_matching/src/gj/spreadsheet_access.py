@@ -127,7 +127,7 @@ class GjRowEntity:
                 #return None
 
             if (cell.row % 7 == 0) and (cell.row < 255) and (cell.value):  # This number is very adhoc
-                self._logger.info(f"{cell.row=}-{cell.column=}, {cell.value=}")
+                self._logger.debug(f"{cell.row=}-{cell.column=}, {cell.value=}")
             cell_title = ""
             try:
                 cell_title = col_title_definition[cell.column]
@@ -283,7 +283,7 @@ class GjToubanAccess:
         for cell in sheet[self.COL_ROW_EXEMPT]:
             if cell.value == key_target:
                 row_ids.append(cell.row)  # 'row' is not intuitive way to get row number but it works.
-        self._logger.info(f"row_ids: {row_ids}")    
+        self._logger.debug(f"row_ids: {row_ids}")    
         # Haven't found openpyxl API way of knowing the row number,
         # so maually figuring here...
         for row_id in row_ids:
