@@ -82,7 +82,8 @@ class GjDocx():
             requirements: DateRequirement,
             heading1: str,
             paragraph: str='This is a sample paragraph.',
-            timestamp: str=""):
+            timestamp: str="",
+            path_input_file=""):
 
         # TODO This might need to be flexible
         TABLE_TOP_ROW = ["日付", "順", "担当", "学級", "生徒氏名", "電話番号"]
@@ -148,6 +149,10 @@ class GjDocx():
             _row_id += 1
 
         self._narrow_table_row_spacing(table, space_before=Pt(0), space_after=Pt(0))
+
+        # Pring the input file name
+        if path_input_file:
+            document.add_paragraph("使用マスタファイル名：" + os.path.basename(path_input_file))
 
         _sys_timestamp = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S')
         if not timestamp:

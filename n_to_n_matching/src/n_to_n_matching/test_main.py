@@ -503,11 +503,11 @@ def test_3(path_touban_master_sheet, sheet_name, output_path="/cws/src/130s/nton
         _paragraph = ""
         _ROLE_CHOSEN = Roles_Definition.TOSHO_COMMITEE.value
     elif role == Roles_ID.HOKEN.value:
-        dates_input = fixture_dates_hoken_0()
+        dates_input = fixture_dates_hoken_0(dates=dates)
         _paragraph = ""
         _ROLE_CHOSEN = Roles_Definition.HOKEN_COMMITEE.value
     elif role == Roles_ID.ANZEN.value:
-        dates_input = fixture_dates_anzen_0()
+        dates_input = fixture_dates_anzen_0(dates=dates)
         _paragraph = ""
         _ROLE_CHOSEN = Roles_Definition.SAFETY_COMMITEE.value
 
@@ -517,4 +517,9 @@ def test_3(path_touban_master_sheet, sheet_name, output_path="/cws/src/130s/nton
     GjVolunteerAllocationGame.print_tabular_stdout(solution)
 
     docx_gen = GjDocx(output_path)
-    docx_gen.print_distributable(solution=solution, requirements=solution.reqs, heading1=f"202508-09当番予定表: {_ROLE_CHOSEN}", paragraph=_paragraph)
+    docx_gen.print_distributable(
+        solution=solution,
+        requirements=solution.reqs,
+        heading1=f"202508-09当番予定表: {_ROLE_CHOSEN}",
+        paragraph=_paragraph,
+        path_input_file=path_touban_master_sheet)
