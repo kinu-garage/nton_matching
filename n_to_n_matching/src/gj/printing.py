@@ -81,7 +81,8 @@ class GjDocx():
             solution: GjVolunteerMatching,
             requirements: DateRequirement,
             heading1: str,
-            paragraph: str='This is a sample paragraph.',
+            paragraph_before_table: str="",
+            paragraph_after_table: str="",
             timestamp: str="",
             path_input_file=""):
 
@@ -94,7 +95,7 @@ class GjDocx():
 
         document = docx.Document()
         document.add_heading(heading1, level=1)
-        document.add_paragraph(paragraph)
+        document.add_paragraph(paragraph_before_table)
 
         # Total num of assignees over the all dates.
         _all_dates = solution.dates_lgtm  # `solution.dates_failed` should not be included, right?
@@ -149,6 +150,8 @@ class GjDocx():
             _row_id += 1
 
         self._narrow_table_row_spacing(table, space_before=Pt(0), space_after=Pt(0))
+
+        document.add_paragraph(paragraph_after_table)
 
         # Pring the input file name
         if path_input_file:

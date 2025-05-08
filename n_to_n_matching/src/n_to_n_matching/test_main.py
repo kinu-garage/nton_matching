@@ -461,6 +461,28 @@ def fixture_dates_20250503():
 
         ]}
 
+def fixture_dates_20250503_v2(duty_type=Roles_Definition.TOSHO_COMMITEE):
+    return {
+        DateRequirement.ATTR_SECTION: [
+            { WorkDate.ATTR_DUTY_TYPE: duty_type, },
+            { WorkDate.REQ_INTERVAL_ASSIGNEDDATES_LEADER: 3*7, },
+            { WorkDate.REQ_INTERVAL_ASSIGNEDDATES_COMMITTE: 3*7, },
+            { WorkDate.REQ_INTERVAL_ASSIGNEDDATES_GENERAL: 5*7, },
+            { WorkDate.ATTR_NUM_LEADER: 1, },
+            { WorkDate.ATTR_NUM_COMMITTEE: 2, },
+            { WorkDate.ATTR_NUM_GENERAL: 1, },
+        ],
+        WorkDate.ATTR_SECTION: [
+            { WorkDate.ATTR_DATE: "2025-06-07", },
+            { WorkDate.ATTR_DATE: "2025-08-02", },
+            { WorkDate.ATTR_DATE: "2025-08-09", },
+            { WorkDate.ATTR_DATE: "2025-08-16", },
+            { WorkDate.ATTR_DATE: "2025-08-23", },
+            { WorkDate.ATTR_DATE: "2025-08-30", },
+
+        ]            
+        }
+
 def _fixture_dates_per_role(duty_type, dates):
     reqs = requirement_set_0(duty_type)
     dal = {DateRequirement.ATTR_SECTION: reqs}
@@ -483,24 +505,90 @@ def test_2():
 
     test_1(guardian_input)
 
+_MSG_AFTER_TABLE_HOKEN_20250503 = """
+＜保健当番の方へ＞　※当番にアサインされ、この当番表を受け取ったらすぐに以下に一通り目を通してください。※
+★集合場所：保健室（315教室）　集合時間：午前8時45分（～午後3時頃終了予定）　※昼食は各自ご持参ください。
+※保健室の場所は、正面玄関を入って突き当りのカフェテリアを右に曲がって右側角の315教室（10月5日にDojoで配信された教室配置図を参考に）
+★添付のプリントを読み、一日の流れや仕事内容などを把握しておいて下さい。
+★当日、応援の手が必要になった場合は、事務局もしくは図書当番リーダーに声をかけ、応援を要請してください。
+★当番の日に都合が悪い場合（一時帰国、退学予定も含む）は、上記の電話番号または登校日等を利用し各自で交替の方を見つけ、速やかに 
+　①当番作成委員 ②もとの当番日のリーダー ③交替日のリーダーに必ず連絡して下さい。
+★リーダーの方が当番日を変更される場合は、①当番作成委員 ②もとの当番日の前の週のリーダー ③交替日の前の週のリーダー
+　の3名に連絡してください。　
+　　※当番の交替は、できるだけ当番表の中の方から見つけて下さい。どうしても見つからない場合は、当番表にない方でもよいものとします。
+★リーダーの方へ：①同じ日の当番の方に１週間前にテキストでリマインドの連絡をして下さい。
+　　　　　　　　　②交替者なく休まれた方がいらした場合は、当番作成委員までご連絡下さい。
+　　　　　　　　　③当番終了後、当番表を確認し、次週保健当番のリーダーの方に確認の連絡をして下さい。
+★交替者なく休まれた方には、やり直し1回に加え、更にペナルティー1回の合計2回当番をお願いする事になりますので、ご注意下さい。
+★当番作成委員は、交替者を当番担当者に代わって見つけることは致しませんので、予めご了承願います。
+★交通渋滞等で、当日遅れる場合は、必ず事務局に連絡を入れて下さい。
+
+連絡先一覧
+2025年度 当番表作成委員 (保健・図書　連絡・配信係）XXXXX  　touban-hoken_tosho@gjls.org
+　ジョージア日本語学校"""
+
+_MSG_AFTER_TABLE_SAFETY_20250503 = """
+＜パトロール当番の方へ＞　※当番にアサインされ、この当番表を受け取ったらすぐに以下に一通り目を通してください。※
+★集合場所：補習校正面玄関前　集合時間：午前8時15分（～午後3時30分頃終了予定）　※昼食は各自ご持参ください。
+★添付のプリントを読み、ご自分の担当の当番欄（アルファベット表示）を確認し、一日の流れや仕事内容などを把握しておいて下さい。
+★当番の日に都合が悪い場合（一時帰国、退学予定も含む）は、上記の電話番号または登校日等を利用し各自で交替の方を見つけ、速やかに 
+　①当番作成委員 ②もとの当番日のリーダー ③交替日のリーダーに必ず連絡して下さい。
+★リーダーの方が当番日を変更される場合は、①危機管理担当運営委員（Kocho@gjls.org）②当番表作成委員 ③もとの当番日の前の週のリーダー
+　④交替日の前の週のリーダー　の4名に連絡してください。　
+　※当番の交替は、できるだけ当番表の中の方から見つけて下さい。どうしても見つからない場合は、当番表にない方でもよいものとします。
+★リーダーの方へ：①同じ日の当番の方々に１週間前にテキストでリマインドの連絡をして下さい。
+　　　　　　　　　②交替者なく休まれた方がいらした場合は、当番表作成委員までご連絡下さい。
+　　　　　　　　　③当番終了後、当番表を確認し、次週パトロール当番のリーダーの方に確認の連絡をして下さい。
+★交替者なく休まれた方には、やり直し1回に加え、更にペナルティー1回の合計2回当番をお願いする事になりますので、ご注意下さい。
+★当番表作成委員は、交替者を当番担当者に代わって見つけることは致しませんので、予めご了承願います。
+★交通渋滞等で、当日遅れる場合は、必ず事務局に連絡を入れて下さい。
+★駐車場の管理などもあり危険なため、パトロール当番は子供をつれての当番は禁止です。
+★コロナに関連するお問い合わせ、パトロールの実務内容に関するお問い合わせは、危機管理担当運営委員（ Kocho@gjls.org）または運営委員に
+　直接ご連絡下さい。当番表作成委員は割り当てた当番を変更する範囲でしかお問い合わせにお答えできませんのでご了承ください。
+
+連絡先一覧
+　2025年度 当番表作成委員 （パトロール連絡・配信係）　XXXX
+　ジョージア日本語学校"""
+
+_MSG_AFTER_TABLE_TOSHO_20250503 = """
+＜図書当番の方へ＞　※当番にアサインされ、この当番表を受け取ったらすぐに以下に一通り目を通してください。※
+★集合場所：図書室（300教室）　集合時間：午前8時45分　（～午後3時頃終了予定）　※昼食は各自ご持参ください。
+※図書室の場所は、正面玄関を入って突き当りのカフェテリアを左に曲がって奥の方、300教室です（10月5日にDojoで配信された教室配置図を参考にしてください）
+★当日、保健当番で応援の手が必要になった場合は、図書当番D,Eの方は、保健当番のお手伝いをお願いすることもあります。
+★当番の日に都合が悪い場合(一時帰国、退学予定も含む)は上記の電話番号や登校日等を利用し各自交替の方を見つけ、速やかに下記の方までお知らせください。 
+　　当番A・B・C： A・B・Cの中から交替者を見つけ、もとの当番日のリーダー、交替日のリーダー、当番表作成委員および図書委員長(tosho@gjls.org)へ連絡
+　　当番D ： Dの中から交替者を見つけ、もとの当番日のリーダー、交替日のリーダー、および当番表作成委員へ連絡
+　※当番の交替は、できるだけ当番表の中の方から見つけて下さい。どうしても見つからない場合は、当番表にない方でもよいものとします。
+★リーダーの方へ：①同じ日の当番の方に１週間前にテキストでリマインドの連絡をして下さい。
+　　　　　　　　　②交替者なく休まれた方がいらした場合は、当番作成委員までご連絡下さい。
+　　　　　　　　　③当番終了後、当番表を確認し、次週図書当番のリーダーの方に確認の連絡をして下さい。
+★交替者なく休まれた方には、やり直し1回に加え、更にペナルティー1回の合計2回当番をお願いする事になりますので、ご注意下さい。
+★当番作成委員は、交替者を当番担当者に代わって見つけることは致しませんので、予めご了承願います。
+★交通渋滞等で、当日遅れる場合は、必ず事務局に連絡を入れて下さい。
+
+★運動会・球技大会の日の図書当番は、雨天で運動会・球技大会が中止をなった時のみ、活動があります。
+連絡先一覧
+2025年度 当番表作成委員 (保健・図書　連絡・配信係）XXXX   　touban-hoken_tosho@gjls.org
+　ジョージア日本語学校"""
+
 def test_3(path_touban_master_sheet, sheet_name, output_path="/cws/src/130s/nton_matching", role: Roles_ID=Roles_ID.TOSHO):
     touban_accessor = GTA()  # TODO What is this?
     guardian_input = touban_accessor.gj_xls_to_personobj(
         path_touban_master_sheet, sheet_name=sheet_name, row_spec=GjRowEntity.COL_TITLE_IDS_20250503)
-    dates = fixture_dates_20250503()
+    dates = fixture_dates_20250503_v2()
     _ROLE_CHOSEN = "(担当当番名)"
     if role == Roles_ID.TOSHO.value:
         dates_input = _fixture_dates_per_role(duty_type=Roles_Definition.TOSHO_COMMITEE, dates=dates)
-        _paragraph = "Test tosho"
+        _paragraph_after_table = _MSG_AFTER_TABLE_TOSHO_20250503
         _ROLE_CHOSEN = Roles_Definition.TOSHO_COMMITEE.value
     elif role == Roles_ID.HOKEN.value:
         dates_input = _fixture_dates_per_role(duty_type=Roles_Definition.HOKEN_COMMITEE, dates=dates)
-        _paragraph = "Test hoken"
+        _paragraph_after_table = _MSG_AFTER_TABLE_HOKEN_20250503
         _ROLE_CHOSEN = Roles_Definition.HOKEN_COMMITEE.value
     elif role == Roles_ID.ANZEN.value:
         dates_input = _fixture_dates_per_role(duty_type=Roles_Definition.SAFETY_COMMITEE, dates=dates)
         dates_input[DateRequirement.ATTR_SECTION][WorkDate.ATTR_NUM_GENERAL] = 3
-        _paragraph = "Test anzen"
+        _paragraph_after_table = _MSG_AFTER_TABLE_SAFETY_20250503
         _ROLE_CHOSEN = Roles_Definition.SAFETY_COMMITEE.value
 
     print(f"064 {role=}")
@@ -513,5 +601,5 @@ def test_3(path_touban_master_sheet, sheet_name, output_path="/cws/src/130s/nton
         solution=solution,
         requirements=solution.reqs,
         heading1=f"202508-09当番予定表: {_ROLE_CHOSEN}",
-        paragraph=_paragraph,
+        paragraph_after_table=_paragraph_after_table,
         path_input_file=path_touban_master_sheet)
