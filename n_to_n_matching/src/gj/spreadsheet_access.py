@@ -251,6 +251,17 @@ class GjToubanAccess:
             if sheet.title.endswith(suffix_master_file):
                 return sheet
 
+    @staticmethod
+    def first_empty_row(sheet: pyxl.worksheet.worksheet) -> int:
+        """
+        @description: Find the first empty row in the given sheet.
+        """
+        # Iterate through each row in the sheet and check if all cells are None    
+        for row_num, row in enumerate(sheet.iter_rows(min_row=1, max_row=sheet.max_row), start=1):
+            if all(cell.value is None for cell in row):
+                return row_num
+        return sheet.max_row + 1 # If no empty row is found, return the next row number
+
     def get_touban_master_sheet(self, path_xls, sheet_name=_MASTERSHEET_2024):
         if not path_xls:
             raise ValueError("Either/Both args 'path_xls' and/or 'sheet_struct' is empty.")
@@ -300,9 +311,14 @@ class GjToubanAccess:
         # Each row should obtain the ID number from a cell in each row in the spreadsheet,
         # but how reliably maintained the ID in the spreadsheet is unknown. So here
         # maintaining ID as well. This is just a backup.
-        _row_count = 1
-        # Parse each row object, create 'PersonPlayer' object per each person.
+        _row_count = 0
+        # Parse each row object, create 'PersonPlayer' object per each person.        
+
+        _max_row_id = self.first_empty_row(rows_xls_obj)
+        self._logger.info(f"{rows_xls_obj.max_row=}, {_max_row_id}")
         for row_pyxl in rows_xls_obj:
+            if _max_row_id < _row_count:
+                break
             # If the row is title, set title flag.
             is_title_row = True if row_pyxl[0].row == title_row else False
 
@@ -311,6 +327,7 @@ class GjToubanAccess:
                 continue
 
             row = GjRowEntity(SpreadsheetRow(row_pyxl, is_title_row), row_spec, self._logger)
+            _row_count += 1
             # Identify GJ role(s), and deduce the responsibility from the role(s).
             a_role = Role(row.exempted_on)
             _responsibility = None
@@ -328,15 +345,16 @@ class GjToubanAccess:
                 _family_id_in_sheet = _row_count
             self._logger.debug(f"{_family_id_in_sheet=}")
 
+            _student_fullname = ""
             try:
                 _student_fullname = row.person_name
             except ValueError as e:
-                self._logger.warning(f"Student name empty. Likely empty row. Skipping.")
+                self._logger.warning(f"{_student_fullname=} empty at {_row_count=}. Likely empty row. Skipping.")
                 continue
   
             # TODO Not fully sure if 'exempted_on' is the correct selection.
             #responsibility = GjUtil.gen_responsibility(row.exempted_on)
-            self._logger.info(f"Grade: {row.grade_class}")
+            self._logger.debug(f"Grade: {row.grade_class}")
             person = PersonPlayer(
                 id =_family_id_in_sheet,
                 name =_student_fullname,
@@ -352,7 +370,6 @@ class GjToubanAccess:
             )
             self._logger.debug(f"person ID: {person.id}, name: {person.name}")
             persons.append(person)
-            _row_count += 1
         self._logger.debug(f"Persons: {persons}, size of persons: {len(persons)}")
         if 0 == len(persons):
             raise RuntimeError(f"No person found, or at least not detected, from the gievn spreadsheet ({path_to_xls=}).")
