@@ -141,6 +141,7 @@ So if that .xlsx file is an input data for your appliaction, check to see if the
 
         for person_id, person in persons.persons.items():            
             resp_ids = [rid.id for rid in person.responsibilities if rid]
+            logger.debug(f"person_id: {person_id}, {resp_ids=}")
             if RespLvl.COMMITTEE.value in resp_ids:
                 # As of 202408 the logic to assign 'leader' is unclear (this needs to be asked for the domain expert).
                 # TODO For now all 'committee' member gets 1 leader value, which won't work for sure
@@ -180,7 +181,7 @@ Ignoring {person_id=}, Person: {person}.")
             logger=None):
         if not logger:
             logger = GjUtil.get_logger()
-        logger.info(f"{msg_prefix}\n\tfree_workers {free_workers}\n\tfullybooked_workers {fullybooked_workers}\n\toverlybooked_workers {overlybooked_workers}")
+        logger.debug(f"{msg_prefix}\n\tfree_workers {free_workers}\n\tfullybooked_workers {fullybooked_workers}\n\toverlybooked_workers {overlybooked_workers}")
 
     @staticmethod
     def find_free_workers(
@@ -386,10 +387,10 @@ assigned_dates: '{assigned_dates}', _stint_already_assigned: '{_stint_already_as
         # Find the total number of slots need to be filled in all `dates`.
         needed_leader, needed_committee, needed_general = GjUtil.total_slots_required(dates)
         available_committee, available_general, exempted = GjUtil.total_persons_available(workers)
-        if not all([available_committee, available_general]):
-            raise ValueError(f"Any one of these must not be 0: {available_committee=}, {available_general=}")
         _log_available_persons(
             dates, needed_leader, needed_committee, needed_general, available_committee, available_general)
+        if not all([available_committee, available_general]):
+            raise ValueError(f"Any one of these must not be 0: {available_committee=}, {available_general=}")
 
         try:
             # Calculating maximum stint per person (i.e. #days a person can take at maximum).
@@ -432,6 +433,19 @@ assigned_dates: '{assigned_dates}', _stint_already_assigned: '{_stint_already_as
         _str_resps = ",".join(_resps) if _resps else "No ID found."
         return _str_resps
 
+    @staticmethod
+    def get_covered_period(dates: Tuple[str, str], logger=None) -> str:
+        """
+        @summary: Returns the start and end date of the period passed by `dates`.
+        @return: E.g. 2025/08-09
+        """
+        if not dates:
+            raise ValueError("Dates are empty.")
+        if len(dates) != 2:
+            raise ValueError("Dates are not in a tuple.")
+        
+
+        return dates[0], dates[1]
 
 class MaxAllowance():
     def __init__(self, responsibility_lvl: RespLvl, available_extras_persons: int, unlucky_persons: int):

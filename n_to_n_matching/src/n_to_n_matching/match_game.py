@@ -213,11 +213,10 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
 
         _persons_randomized = sorted(_persons, key=lambda x: random.random())
         for person in _persons_randomized:
-
-            # Check if there's any exemption condition for the `person`
+            # Check if there's any exemption condition for the `person` e.g. certain grade-class is exempted on this day (parents' meeting day).
             self._logger.debug(f"173 {person=}, {person.grade_class=} {date.exempt_conditions=} on {date=}.")
             if date.exempt_conditions and (GradeUtil.included_grade(person.grade_class, date.exempt_conditions)):
-                self._logger.info(f"172 Skipping {person.id =} due to the exemption rule: {date.exempt_conditions=} on {date=}.")
+                self._logger.debug(f"172 Skipping {person.id =} due to the exemption rule: {date.exempt_conditions=} on {date=}.")
                 continue
 
             try:
@@ -238,7 +237,7 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
                 _role_ids = [role.id for role in pobj.roles]
                 self._logger.debug(f"174 {_role_ids=}. Btw {Roles_Definition.SAFETY_COMMITEE=}")
                 if any((role.id in [role_def.value for role_def in exempted_roles]) for role in pobj.roles):
-                    self._logger.info(f"177 Skipping {pobj=} as their role {pobj.roles=} does't match the requirement.")
+                    self._logger.debug(f"177 Skipping {pobj=} as their role {pobj.roles=} does't match the requirement.")
                     continue
                 _extracted_persons.append(pobj)
             _person_bank_with_extracted_persons = PersonBank(_extracted_persons, person_bank.max_allowance)
@@ -259,7 +258,7 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
         if requirements.type_duty == Roles_Definition.TOSHO_COMMITEE:
             ### BEGIN: Very adhoc, NEEDS better design ###
             # For Tosho, the assignable persons are either those in Tosho Committee or general
-            # Therefore, removing Safety committee members.
+            # Therefore, removing the members of other committees.
             person_bank = self._extract_roles(person_bank, [Roles_Definition.HOKEN_COMMITEE, Roles_Definition.SAFETY_COMMITEE])
             ### END: Very adhoc, NEEDS better design ###
             req_responsibilities = [ResponsibilityLevel.GENERAL, ResponsibilityLevel.COMMITTEE, ResponsibilityLevel.LEADER]
