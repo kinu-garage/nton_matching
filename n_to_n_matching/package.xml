@@ -1,0 +1,16 @@
+<package format="3">
+  <name>n_to_n_matching</name>
+  <version>0.3.0</version>
+  <description>Primarilly made for volunteer matching at GJLS</description>
+  <maintainer email="iisaac.saito@gmail.com">Isaac Saito</maintainer>
+  <license>Apache</license>
+  <url type="bugtracker">https://github.com/130s/hut_10sqft/issues</url>
+  <author>Isaac Saito</author>
+
+  <buildtool_depend>ament</buildtool_depend>
+  <exec_depend>ipython3</exec_depend>
+  <exec_depend>python3-openpyxl</exec_depend>  <!-- TODO Consider https://github.com/kinu-garage/nton_matching/issues/19 -->
+  <exec_depend>tmux</exec_depend>
+  <test_depend>pytest</test_depend>
+
+</package>
