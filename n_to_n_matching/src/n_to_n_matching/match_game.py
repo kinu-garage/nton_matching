@@ -397,14 +397,13 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
     @classmethod
     def create_from_dict_dates(
         cls,
-        dates_prefs,
+        dates_prefs: List[Dict],
         clean=False,
         logger_obj: logging.Logger=None,
         role: Roles_ID=Roles_ID.TOSHO) -> Tuple[List[WorkDate], DateRequirement]:
         """
         @summary: Input data converter from text-based (dictionary in .yaml) format to Python format.
           Only required attribute in each element in `dates_prefs` is `date` (i.e. other attributes are optional).
-        @type dates_prefs: [{}]
         @param dates_prefs: e.g. 
             [
                 { "date": "2024-04-06", 
@@ -434,6 +433,7 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
         # If date requirement is included in the input.
         if DateRequirement.ATTR_SECTION in dates_prefs:
             dates_dict = dates_prefs[DateRequirement.ATTR_SECTION]
+            fiscal_year_start = GjUtil.guess_fiscal_year(dates_dict)
             requirement = DateRequirement(
                 dates=dates_dict,
                 type_duty=dates_dict.get(WorkDate.ATTR_DUTY_TYPE, role_def),
@@ -443,6 +443,7 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
                 num_leaders=dates_dict.get(WorkDate.ATTR_NUM_LEADER),  # `ATTR_NUM_*` cannot be empty in the input data so no default value passed.
                 num_committee=dates_dict.get(WorkDate.ATTR_NUM_COMMITTEE),
                 num_general=dates_dict.get(WorkDate.ATTR_NUM_GENERAL),
+                fiscal_year_start=fiscal_year_start,
             )
         else:
             raise ValueError(f"Requirement is missing in the input data {dates_prefs=}.\n Without the requirement passed, the app cannot function as intended.")

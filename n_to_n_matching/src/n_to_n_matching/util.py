@@ -15,7 +15,9 @@
 # limitations under the License.
 
 import datetime
+import dateutil
 import logging
+from typing import List
 import urllib
 import yaml
 
@@ -55,3 +57,51 @@ class Util:
             datetime.date.fromisoformat(date_text)
         except ValueError:
             raise ValueError("'{}' is incorrect data format, should be YYYY-MM-DD".format(date_text))
+
+    @staticmethod
+    def create_date_from_mmdd(mmdd_string: str, year: int=datetime.date.today().year) -> datetime.date:
+        """
+        @summary: Creates a `datetime.date` object from a string in "mm/dd" format.
+        @param year: The year to use for the date. Defaults to the current year.
+        """
+        try:
+            # Combine the mm/dd string with the provided year
+            full_date_string = f"{mmdd_string}/{year}"
+            # Parse the full date string into a datetime object
+            datetime_object = datetime.datetime.strptime(full_date_string, "%m/%d/%Y")
+            # Extract the date component
+            return datetime_object.date()
+        except ValueError:
+            print(f"Error: Invalid date format for '{mmdd_string}'. Please use 'mm/dd'.")
+            return None
+
+    @staticmethod
+    def create_date_from_str(
+        date_string: str,
+        year: int=0,
+        months_in_subsequent_year: List[int]=[1, 2, 3],
+        logger_obj: logging.Logger=None) -> datetime.date:
+        """
+        @summary: Creates a `datetime.date` object from a string in various format using `dateutil.parser.parse`.
+          Some custom logics:
+          - If year is not found in `date_string` AND `year` is 0, the current year will be used.
+          - If the month in the given str is in the list `months_in_subsequent_year`, the year will be incremented by 1.
+        @param months_in_subsequent_year: If None or empty list, year will not be automatically incremented.
+        """
+        if not logger_obj:
+            logger_obj = Util.get_logger(__name__)
+        
+        try:
+            # Parse the full date string into a datetime object
+            date_obj = dateutil.parser.parse(date_string).date()
+            # Extract the date component
+        except ValueError:
+            raise ValueError(f"Error: Invalid date format for '{date_string}'. Use 'mm/dd/yy'.")
+
+        if (year != 0) and (date_obj.year != year):
+            date_obj = date_obj.replace(year=year)
+
+        if months_in_subsequent_year and (date_obj.month in months_in_subsequent_year):
+            _year = date_obj.year + 1
+            date_obj = date_obj.replace(year=_year)
+        return date_obj

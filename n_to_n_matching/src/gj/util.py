@@ -447,6 +447,49 @@ assigned_dates: '{assigned_dates}', _stint_already_assigned: '{_stint_already_as
 
         return dates[0], dates[1]
 
+    @staticmethod
+    def guess_fiscal_year(dates_dict: List[Dict], logger=None) -> str:
+        """
+        @param dates_dict: A dictionary that `DateRequirement.dates` returns.
+          e.g. input:
+
+            WorkDate.ATTR_SECTION: [
+              { WorkDate.ATTR_DATE: "2025-09-06", },
+              { WorkDate.ATTR_DATE: "2025-09-13", },
+              :
+        """
+        if not logger:
+            logger = GjUtil.get_logger()
+        if not dates_dict:
+            raise ValueError("Dates dict is empty.")
+        if not isinstance(dates_dict, list):
+            raise TypeError(f"Dates dict is not a list. {type(dates_dict)}")
+        if not isinstance(dates_dict[0], dict):
+            raise TypeError(f"First element in the dates dict is not a dict. {type(dates_dict[0])}")
+
+        # TODO The followin is NOT yet reviewed by me.
+        _fiscal_year = None
+        for date_dict in dates_dict:
+            if WorkDate.ATTR_DATE not in date_dict:
+                raise ValueError(f"Date key '{WorkDate.ATTR_DATE}' not found in the dict {date_dict=}.")
+            _date_str = date_dict[WorkDate.ATTR_DATE]
+            if not isinstance(_date_str, str):
+                raise TypeError(f"Date value is not a string. {_date_str=}, {type(_date_str)}")
+            _year = int(_date_str.split("-")[0])
+            _month = int(_date_str.split("-")[1])
+            if _month in [1, 2, 3]:
+                _fiscal_year = f"{_year-1}-{_year}"
+            elif _month in [4, 5, 6, 7, 8, 9, 10, 11, 12]:
+                _fiscal_year = f"{_year}-{_year+1}"
+            else:
+                raise ValueError(f"Month {_month} is invalid.")
+            logger.debug(f"Fiscal year guessed: {_fiscal_year} from {_date_str=}")
+            break
+        if not _fiscal_year:
+            raise RuntimeError("Fiscal year cannot be guessed.")
+        return _fiscal_year
+
+
 class MaxAllowance():
     def __init__(self, responsibility_lvl: RespLvl, available_extras_persons: int, unlucky_persons: int):
         self._responsibility_lvl = responsibility_lvl

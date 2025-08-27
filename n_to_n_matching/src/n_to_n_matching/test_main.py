@@ -23,6 +23,7 @@ from gj.responsibility import ResponsibilityLevel
 from gj.role import Role, Roles_Definition, Roles_ID
 from gj.spreadsheet_access import GjRowEntity
 from gj.spreadsheet_access import GjToubanAccess2024 as GTA
+from gj.util import GjUtil
 from n_to_n_matching.match_game import GjVolunteerAllocationGame
 from n_to_n_matching.person_player import PersonPlayer
 from n_to_n_matching.workdate_player import WorkDate
@@ -483,6 +484,29 @@ def fixture_dates_20250503_v2(duty_type=Roles_Definition.TOSHO_COMMITEE):
         ]            
         }
 
+def fixture_dates_202509(duty_type=Roles_Definition.TOSHO_COMMITEE):
+    return {
+        DateRequirement.ATTR_SECTION: [
+            { WorkDate.ATTR_DUTY_TYPE: duty_type, },
+            { WorkDate.REQ_INTERVAL_ASSIGNEDDATES_LEADER: 3*7, },
+            { WorkDate.REQ_INTERVAL_ASSIGNEDDATES_COMMITTE: 3*7, },
+            { WorkDate.REQ_INTERVAL_ASSIGNEDDATES_GENERAL: 5*7, },
+            { WorkDate.ATTR_NUM_LEADER: 1, },
+            { WorkDate.ATTR_NUM_COMMITTEE: 2, },
+            { WorkDate.ATTR_NUM_GENERAL: 1, },
+        ],
+        WorkDate.ATTR_SECTION: [
+            { WorkDate.ATTR_DATE: "2025-09-06", },
+            { WorkDate.ATTR_DATE: "2025-09-13", },
+            { WorkDate.ATTR_DATE: "2025-09-20", },
+            { WorkDate.ATTR_DATE: "2025-09-27", },
+            { WorkDate.ATTR_DATE: "2025-10-04", },
+            { WorkDate.ATTR_DATE: "2025-10-11", },
+            { WorkDate.ATTR_DATE: "2025-10-18", },
+            { WorkDate.ATTR_DATE: "2025-10-25", },
+        ]            
+        }
+
 def _fixture_dates_per_role(duty_type, dates):
     reqs = requirement_set_0(duty_type)
     dal = {DateRequirement.ATTR_SECTION: reqs}
@@ -573,9 +597,7 @@ _MSG_AFTER_TABLE_TOSHO_20250503 = """
 
 def test_3(path_touban_master_sheet, sheet_name, output_path="/cws/src/130s/nton_matching", role: Roles_ID=Roles_ID.TOSHO):
     touban_accessor = GTA()  # TODO What is this?
-    guardian_input = touban_accessor.gj_xls_to_personobj(
-        path_touban_master_sheet, sheet_name=sheet_name, row_spec=GjRowEntity.COL_TITLE_IDS_20250503)
-    dates = fixture_dates_20250503_v2()
+    dates = fixture_dates_202509()
     _ROLE_CHOSEN = "(担当当番名)"
     if role == Roles_ID.TOSHO.value:
         dates_input = _fixture_dates_per_role(duty_type=Roles_Definition.TOSHO_COMMITEE, dates=dates)
@@ -590,6 +612,13 @@ def test_3(path_touban_master_sheet, sheet_name, output_path="/cws/src/130s/nton
         dates_input[DateRequirement.ATTR_SECTION][WorkDate.ATTR_NUM_GENERAL] = 3
         _paragraph_after_table = _MSG_AFTER_TABLE_SAFETY_20250503
         _ROLE_CHOSEN = Roles_Definition.SAFETY_COMMITEE.value
+
+    fiscal_year_beginning = GjUtil.guess_fiscal_year(dates)
+    guardian_input = touban_accessor.gj_xls_to_personobj(
+        path_touban_master_sheet,
+        sheet_name=sheet_name, 
+        row_spec=GjRowEntity.COL_TITLE_IDS_20250503,
+        fiscal_year_beginning=fiscal_year_beginning)
 
     print(f"064 {role=}")
     solution = GjVolunteerAllocationGame.create_from_dictionaries_2(

@@ -39,7 +39,10 @@ class DateRequirement():
                  num_leaders=1,
                  num_committee=2,
                  num_general=2,
-                 ):
+                 fiscal_year_start: datetime.date=datetime.date(2025, 4, 1)):
+        """
+        @param fiscal_year_start: The earliest date in the fiscal year, usually April 1st.
+        """
         self._type_duty = type_duty
         self._dates = dates
         self._interval_assigneddates_leader = interval_assigneddates_leader
@@ -48,6 +51,8 @@ class DateRequirement():
         self._num_leaders = num_leaders
         self._num_committee = num_committee
         self._num_general = num_general
+        self._date_earliest = None
+        self._fiscal_year_start = fiscal_year_start
 
     @property
     def type_duty(self) -> Roles_Definition:
@@ -71,6 +76,9 @@ class DateRequirement():
 
     @property
     def date_earliest(self) -> datetime.date:
+        """
+        @summary: The earliest date in the fiscal year, usually April 1st.
+        """
         return self._date_earliest
 
     @date_earliest.setter
@@ -115,3 +123,7 @@ class DateRequirement():
     @property
     def num_general(self) -> int:
         return self._num_general
+
+    @property
+    def fiscal_year_start(self) -> int:
+        return self._fiscal_year_start

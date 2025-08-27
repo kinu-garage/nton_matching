@@ -8,10 +8,10 @@ DESC_TOOL = """'gjls_match' command HELP TBD."""
 
 def stdin():
     _MSG_LIMITATION_VOLUME = ("")
-    _PATH_XLSX_TEST1 = 'n_to_n_matching/test/20240602-updated_gjls_student-master.xlsx'
-    _PATH_XLSX_TEST_20250322 =  "n_to_n_matching/test/2024年度_家庭名簿_当番マスタ24年度正式版_20250322_委員25年度更新.xlsx"
-    _PATH_XLSX_TEST_20250503 =  "n_to_n_matching/test/20250503_gjls-family-master_mod-by-130s.xlsx"
-    _PATH_XLSX_TEST_20250726 =  "n_to_n_matching/test/20250726_gjls_student-master.xlsx"
+    _PATH_XLSX_TEST1 = 'n_to_n_matching/test/gj/20240602-updated_gjls_student-master.xlsx'
+    _PATH_XLSX_TEST_20250322 =  "n_to_n_matching/test/gj/2024年度_家庭名簿_当番マスタ24年度正式版_20250322_委員25年度更新.xlsx"
+    _PATH_XLSX_TEST_20250503 =  "n_to_n_matching/test/gj/20250503_gjls-family-master_mod-by-130s.xlsx"
+    _PATH_XLSX_TEST_20250726 =  "n_to_n_matching/test/gj/20250726_gjls_student-master.xlsx"
     _SHEET_NAME = "2025当番マスター"
     _PATH_OUTIDR = '~/Desktop'
     _PATH_OUTIDR_IN_CONTAINER = "/cws/src/130s/nton_matching"

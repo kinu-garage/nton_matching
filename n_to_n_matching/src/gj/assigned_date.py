@@ -27,9 +27,15 @@ class AssignedDate():
 
     def __init__(self,
                  date: datetime.date,
-                 responsibility: Responsibility):
+                 responsibility: Responsibility,
+                 comment: str=""):
+        """
+        @param comment: Any comment can be stored. Primary motive of this is to store a 'rank', an info stored in the GJLS' master file
+           that represents the detailed duty within a responsibility. E.g. in 'tosho' responsibility, there are A/B/C/D ranks as of 2025/08.
+        """
         self._date = date
         self._responsibility = responsibility
+        self._comment = comment
 
     @property
     def date(self) -> datetime.date:
@@ -46,3 +52,11 @@ class AssignedDate():
     @responsibility.setter
     def responsibility(self, value: Responsibility):
         raise RuntimeError(self._MSG_ERR_VALCANNOTBESET.format("responsibility"))
+
+    @property
+    def comment(self) -> str:
+        return self._comment
+
+    @comment.setter
+    def comment(self, value: str):
+        self._comment = value

@@ -21,14 +21,15 @@ import numpy as np
 import pytest
 
 from n_to_n_matching.gj_rsc_matching import GjVolunteerMatching
-from n_to_n_matching.gj_spreadsheet_access import GjToubanAccess2024 as GTA
-from n_to_n_matching.gj_util import GjUtil
 from n_to_n_matching.match_game import GjVolunteerAllocationGame
-from n_to_n_matching.person_player import ResponsibilityLevel
 from n_to_n_matching.util import Util
 #from n_to_n_matching.test_main import fixture_dates_0, fixture_dates_1, fixture_persons_1
-from n_to_n_matching.workdate_player import DateRequirement, WorkDate
+from n_to_n_matching.workdate_player import WorkDate
 
+from gj.spreadsheet_access import GjToubanAccess2024 as GTA
+from gj.util import GjUtil
+from gj.responsibility import ResponsibilityLevel
+from gj.requirements import DateRequirement
 
 @pytest.fixture
 def input_guardians_yaml():
@@ -535,10 +536,12 @@ def _test_2():
 
     _test_1(guardian_input)
 
-@pytest.fixture
-def path_touban_master_sheet_20240602():
-    return "n_to_n_matching/test/20240602-updated_gjls_student-master.xlsx"
 
-@pytest.fixture
-def path_touban_master_sheet():
-    return "n_to_n_matching/test/20240602-updated_gjls_student-master.xlsx"
+class SampleToubanMaster202507():
+    @staticmethod
+    def path_touban_master_sheet_20240602():
+        return "n_to_n_matching/test/gj/20240602-updated_gjls_student-master.xlsx"
+
+    @staticmethod
+    def sheet_title():
+        return "2025-touban-master-sample"
