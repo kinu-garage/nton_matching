@@ -22,7 +22,7 @@ from typing import Dict, List, Tuple
 from gj.assigned_date import AssignedDate
 from gj.grade_class import GjGrade, GradeUtil
 from gj.responsibility import Responsibility, ResponsibilityLevel
-from gj.role import Role, Roles_Definition
+from gj.role import Role, Roles_Definition, Roles_ID
 from gj.util import GjUtil
 from n_to_n_matching.person_player import PersonBank, PersonPlayer
 from n_to_n_matching.spreadsheet_access import SpreadsheetCell, SpreadsheetRow
@@ -294,18 +294,18 @@ class GjToubanAccess:
           single digit is used, e.g. "1/15" for Jan 15th.
         """
         _assigned_dates: List[AssignedDate] = []
-        # TODO Don't use local adhoc list. There should be reusable list.
-        _duties_tbd = [[row.assign_history_tosho, row.assign_history_tosho_suppl],
-                       [row.assign_history_hoken, row.assign_history_hoken_suppl],
-                       [row.assign_history_patrol, row.assign_history_patrol_suppl]]
-        for duty in _duties_tbd:
+        # TODO Type of role must be identifiable.
+        _roles_tbd = [[Roles_Definition.TOSHO_COMMITEE, row.assign_history_tosho, row.assign_history_tosho_suppl],
+                      [Roles_Definition.HOKEN_COMMITEE, row.assign_history_hoken, row.assign_history_hoken_suppl],
+                      [Roles_Definition.SAFETY_COMMITEE, row.assign_history_patrol, row.assign_history_patrol_suppl]]
+        for role in _roles_tbd:
             dates = []
             ranks = []
             try:
-                dates = self.get_cs_values_from_cell(duty[0])
+                dates = self.get_cs_values_from_cell(role[1])
 
                 # Unlike `row.assign_history_*`, it is possible for `row.assign_history_*_suppl` cells to be empty.
-                ranks = self.get_cs_values_from_cell(duty[1])
+                ranks = self.get_cs_values_from_cell(role[2])
             except AttributeError as e:
                 self._logger.warning(f"Either Supplementary assignment history  \
                                      not found. Continuing though. {str(e)}.    \
@@ -324,7 +324,7 @@ class GjToubanAccess:
                     # 4) yyyymmdd (without slash)
                     date_obj = Util.create_date_from_str(date_str, year=fiscal_year_beginning, logger_obj=self._logger)
 
-                    date = AssignedDate(date=date_obj, role=Role(role_name=rank))
+                    date = AssignedDate(date=date_obj, role=Role(id=role[0]), rank_in_role=rank)
                     _assigned_dates.append(date)
             elif (len(dates) < len(ranks)):
                 raise ValueError(f"More ranks found than days. {len(dates)=}, {len(ranks)=}, not an expected scenario.")

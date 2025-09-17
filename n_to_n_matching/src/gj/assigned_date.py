@@ -17,6 +17,7 @@
 import datetime
 
 from gj.responsibility import Responsibility
+from gj.role import Role
 
 
 class AssignedDate():
@@ -27,6 +28,8 @@ class AssignedDate():
 
     def __init__(self,
                  date: datetime.date,
+                 role: Role,
+                 rank_in_role: int,
                  responsibility: Responsibility,
                  comment: str=""):
         """
@@ -35,6 +38,7 @@ class AssignedDate():
         """
         self._date = date
         self._responsibility = responsibility
+        self._role = role
         self._comment = comment
 
     @property
@@ -52,6 +56,14 @@ class AssignedDate():
     @responsibility.setter
     def responsibility(self, value: Responsibility):
         raise RuntimeError(self._MSG_ERR_VALCANNOTBESET.format("responsibility"))
+
+    @property
+    def role(self) -> Role:
+        return self._role
+
+    @role.setter
+    def role(self, value: Role):
+        raise RuntimeError(self._MSG_ERR_VALCANNOTBESET.format("role"))
 
     @property
     def comment(self) -> str:

@@ -37,13 +37,14 @@ def main():
     print("Python sys.path: {}".format(sys.path))
     _args = stdin()
     roles = _args.type_role
-    for role_obj in roles:
-        role = role_obj.value
-        print(f"011 {role_obj=}, {role=}")
-        if (role == Roles_ID.ANZEN.value) or (role == Roles_ID.HOKEN.value) or (role == Roles_ID.TOSHO.value):
-            test_3(_args.input_master_file, sheet_name=_args.master_sheet, output_path=_args.path_output, role=role)
-        else:
-            raise RuntimeError("No eligible role passed.")
+#    for role_obj in roles:
+#        role = role_obj.value
+#        print(f"011 {role_obj=}, {role=}")
+#        if (role == Roles_ID.ANZEN.value) or (role == Roles_ID.HOKEN.value) or (role == Roles_ID.TOSHO.value):
+#            test_3(_args.input_master_file, sheet_name=_args.master_sheet, output_path=_args.path_output, role=role)
+#        else:
+#            raise RuntimeError("No eligible role passed.")
+    test_4(_args.input_master_file, sheet_name=_args.master_sheet, output_path=_args.path_output, roles=roles)
     #test_2()
 
 if __name__ == "__main__":
