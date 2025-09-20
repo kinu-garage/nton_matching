@@ -22,12 +22,12 @@ from typing import Dict, List, Tuple
 from matching import BaseGame
 from matching.exceptions import PlayerExcludedWarning
 
+from gj.gj_rsc_matching import GjVolunteerMatching
 from gj.grade_class import GjGrade, GjGradeGroup, GradeUtil
 from gj.responsibility import Responsibility, ResponsibilityLevel
 from gj.requirements import DateRequirement
 from gj.role import Roles_Definition, Roles_ID
 from gj.util import GjUtil
-from n_to_n_matching.gj_rsc_matching import GjVolunteerMatching
 from n_to_n_matching.person_player import (AssignedDate,
                                            PersonBank,
                                            PersonPlayer)
@@ -38,14 +38,12 @@ class GjVolunteerAllocationGame(BaseGame):
     DATES = "dates"
     WORKERS = "workers"
 
-    def __init__(self, dates, persons, requirements: DateRequirement=None, clean=False, logger_obj=None):
+    def __init__(self, persons: PersonBank, requirements: DateRequirement=None, clean=False, logger_obj=None):
         """
-        @type persons: PersonBank
         @param persons: Will be converted to `PersonBank` class instance.
-        @type requirements: DateRequirement
         """
         super().__init__(clean)
-        self._dates = dates
+        self._dates = requirements.dates
         self._person_bank = persons
         self._reqs = requirements
         self._check_inputs()
@@ -400,7 +398,7 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
         dates_prefs: List[Dict],
         clean=False,
         logger_obj: logging.Logger=None,
-        role: Roles_ID=Roles_ID.TOSHO) -> Tuple[List[WorkDate], DateRequirement]:
+        role: Roles_ID=Roles_ID.TOSHO) -> DateRequirement:
         """
         @summary: Input data converter from text-based (dictionary in .yaml) format to Python format.
           Only required attribute in each element in `dates_prefs` is `date` (i.e. other attributes are optional).
@@ -443,26 +441,18 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
                 num_leaders=dates_dict.get(WorkDate.ATTR_NUM_LEADER),  # `ATTR_NUM_*` cannot be empty in the input data so no default value passed.
                 num_committee=dates_dict.get(WorkDate.ATTR_NUM_COMMITTEE),
                 num_general=dates_dict.get(WorkDate.ATTR_NUM_GENERAL),
-                fiscal_year_start=fiscal_year_start,
-            )
+                fiscal_year_start=fiscal_year_start,)
         else:
-            raise ValueError(f"Requirement is missing in the input data {dates_prefs=}.\n Without the requirement passed, the app cannot function as intended.")
+            raise ValueError(f"Requirement is missing in the input data {dates_prefs=}.\
+                             \n Without the requirement passed, the app cannot function as intended.")
 
-        _dates = [WorkDate(datestr=date[WorkDate.ATTR_DATE],
-                           school_off=date.get(WorkDate.ATTR_SCHOOL_OFF, False),
-                           req_num_leader=date.get(WorkDate.ATTR_NUM_LEADER, requirement.num_leaders),
-                           req_num_committee=date.get(WorkDate.ATTR_NUM_COMMITTEE, requirement.num_committee),
-                           req_num_noncommittee=date.get(WorkDate.ATTR_NUM_GENERAL, requirement.num_general),
-                           exempt_conditions=date.get(WorkDate.ATTR_EXEMPT_GRADE, None),
-                           ) for date in dates_prefs[WorkDate.ATTR_SECTION]]
-        requirement.dates = _dates
         # Find the earliest date in the given dates in order for that date to be the beginning of the given period.
-        _date_earliest = min(date.date for date in _dates)
+        _date_earliest = min(date.date for date in requirement.dates)
         requirement.date_earliest = _date_earliest
         logger_obj.debug(f"050 {dates_prefs=}")
         logger_obj.info(f"051 {role=}, {role_def=}, {requirement.type_duty=}")
 
-        return _dates, requirement
+        return requirement
 
     @classmethod
     def create_from_dict_persons(cls, person_prefs, clean=False) -> List[PersonPlayer]:
@@ -503,9 +493,9 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
         @param personnel_prefs: List particularly made by .yaml input.
         @rtype: matching.BaseGame
         """
-        _dates, _reqs = GjVolunteerAllocationGame.create_from_dict_dates(dates_prefs, clean=clean, role=role)
+        _reqs = GjVolunteerAllocationGame.create_from_dict_dates(dates_prefs, clean=clean, role=role)
         _persons = GjVolunteerAllocationGame.create_from_dict_persons(personnel_prefs, clean=clean)
-        game = cls(_dates, PersonBank(_persons), _reqs, clean)
+        game = cls(PersonBank(_persons), _reqs, clean)
         return game
 
     @classmethod
@@ -520,8 +510,8 @@ Responsibilities: {GjUtil.str_ids(person.responsibilities)}, roles: {GjUtil.str_
         @rtype: GjVolunteerAllocationGame (child class of `matching.BaseGame`)
         """
         print(f"066 {role=}")
-        _dates, _reqs = GjVolunteerAllocationGame.create_from_dict_dates(dates_prefs, clean=clean, role=role)
-        game = cls(_dates, persons_obj, _reqs, clean)
+        _reqs = GjVolunteerAllocationGame.create_from_dict_dates(dates_prefs, clean=clean, role=role)
+        game = cls(_reqs._dates, persons_obj, _reqs, clean)
         return game
 
     def check_stability(self):

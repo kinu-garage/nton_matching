@@ -25,9 +25,9 @@ from gj.test_data import (
     input_dates_obj, input_dates_yaml, input_guardians_yaml, input_persons_obj,
     max_allowed_days_per_person, path_touban_master_sheet
 )
+from gj.gj_rsc_matching import GjVolunteerMatching
 from gj.spreadsheet_access import GjToubanAccess2024
 from gj.util import GjUtil
-from n_to_n_matching.gj_rsc_matching import GjVolunteerMatching
 from n_to_n_matching.match_game import GjVolunteerAllocationGame
 from n_to_n_matching.person_player import ResponsibilityLevel
 from n_to_n_matching.util import Util

@@ -44,7 +44,6 @@ class DateRequirement():
         @param fiscal_year_start: The earliest date in the fiscal year, usually April 1st.
         """
         self._type_duty = type_duty
-        self._dates = dates
         self._interval_assigneddates_leader = interval_assigneddates_leader
         self._interval_assigneddates_commitee = interval_assigneddates_commitee
         self._interval_assigneddates_general = interval_assigneddates_general
@@ -53,6 +52,24 @@ class DateRequirement():
         self._num_general = num_general
         self._date_earliest = None
         self._fiscal_year_start = fiscal_year_start
+        self._dates = DateRequirement.gen_date_objs(dates, self._num_leaders)
+
+    @staticmethod
+    def gen_date_objs(dates_prefs: List[dict], num_leaders: int, num_committee: int, num_general: int) -> List[WorkDate]:
+        """
+        @param dates_prefs: A list of dictionary, each containing the attributes defined in `WorkDate`.
+        @param fiscal_year_start: The earliest date in the fiscal year, usually April 1st.
+        @return: A list of `WorkDate` instances.
+        @raise ValueError: When any of the required attributes is missing in the input data.
+        """
+        _dates = [WorkDate(datestr=date[WorkDate.ATTR_DATE],
+                           school_off=date.get(WorkDate.ATTR_SCHOOL_OFF, False),
+                           req_num_leader=date.get(WorkDate.ATTR_NUM_LEADER, num_leaders),
+                           req_num_committee=date.get(WorkDate.ATTR_NUM_COMMITTEE, num_committee),
+                           req_num_noncommittee=date.get(WorkDate.ATTR_NUM_GENERAL, num_general),
+                           exempt_conditions=date.get(WorkDate.ATTR_EXEMPT_GRADE, None),
+                           ) for date in dates_prefs[WorkDate.ATTR_SECTION]]
+        return _dates
 
     @property
     def type_duty(self) -> Roles_Definition:
