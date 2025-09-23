@@ -37,6 +37,8 @@ from n_to_n_matching.workdate_player import WorkDate
 class GjVolunteerAllocationGame(BaseGame):
     DATES = "dates"
     WORKERS = "workers"
+    # Roles that touban needs to be assigned to.
+    ROLES_TOUBAN = [Roles_ID.TOSHO, Roles_ID.HOKEN, Roles_ID.ANZEN]
 
     def __init__(self, persons: PersonBank, requirements: DateRequirement=None, clean=False, logger_obj=None):
         """

@@ -66,14 +66,18 @@ def test_cs_values_from_cell(touban_accessor):
     assert expected == actual, f"Expected: '{expected}', Actual: '{actual}'"
 
 def test_write_back_to_xls(path_touban_master_sheet, touban_accessor):
+    dates = ["5/27", "6/4"]
     gta = GTA()
-    person_bank = gta.gj_xls_to_personobj(path_touban_master_sheet, sheet_name=SampleToubanMaster202507.sheet_title())
+    person_bank = gta.gj_xls_to_personobj(path_touban_master_sheet, 
+                                          sheet_name=SampleToubanMaster202507.sheet_title())
     persons = person_bank.persons
 
     # Modify some data
     for person in persons:
         if person.name_jpn == "行列 一蔵":
             # TODO Modify assigned dates
-            person. .assigned_dates = ["5/27", "6/4"]
+            for d in dates:
+                person.assigned_date(d)
     # TODO Write back to the .xlsx file
+    
     # TODO Get the values from the .xlsx file and verify if the values are  the same.

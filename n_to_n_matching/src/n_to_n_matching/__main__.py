@@ -2,7 +2,8 @@ import argparse
 import sys
 
 from gj.role import Roles_ID
-from n_to_n_matching.test_main import test_2, test_3
+from n_to_n_matching.test_main import test_2, test_3, test_4
+from n_to_n_matching.match_game import GjVolunteerAllocationGame
 
 DESC_TOOL = """'gjls_match' command HELP TBD."""
 
@@ -19,7 +20,8 @@ def stdin():
     _test_path_xlsx = _PATH_XLSX_TEST_20250726
     parser = argparse.ArgumentParser(description=DESC_TOOL)
     parser.add_argument("-t", '--type_role', type=Roles_ID, choices=list(Roles_ID), nargs="+",
-                        default=[Roles_ID.TOSHO])
+                        default=[Roles_ID.TOSHO], required=False,
+                        description="If this is set, only the specified role(s) will be processed. Only single role can be passed.")
     parser.add_argument("-i", "--input_master_file", help="Path (relative or absolute) of the file of the list of famillies. File format: .xlsx is the only supported format for v0.2.",
                         default=_test_path_xlsx, action="store_true")
     parser.add_argument("-d", "--debug", help="Disabled by default.", action="store_true")
@@ -36,7 +38,10 @@ def main():
     # Check Python environment
     print("Python sys.path: {}".format(sys.path))
     _args = stdin()
-    roles = _args.type_role
+
+    roles = _args.type_role if _args.type_role else GjVolunteerAllocationGame.ROLES_TOUBAN
+
+## Logic needed to process test_3? Not sure.
 #    for role_obj in roles:
 #        role = role_obj.value
 #        print(f"011 {role_obj=}, {role=}")
@@ -45,7 +50,6 @@ def main():
 #        else:
 #            raise RuntimeError("No eligible role passed.")
     test_4(_args.input_master_file, sheet_name=_args.master_sheet, output_path=_args.path_output, roles=roles)
-    #test_2()
 
 if __name__ == "__main__":
     main()

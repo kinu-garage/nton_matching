@@ -595,7 +595,7 @@ _MSG_AFTER_TABLE_TOSHO_20250503 = """
 2025年度 当番表作成委員 (保健・図書　連絡・配信係）XXXX   　touban-hoken_tosho@gjls.org
 　ジョージア日本語学校"""
 
-def _fixture_per_roles(self, role: str):
+def _fixture_per_roles(self, role: Roles_ID):
     _ROLE_CHOSEN = "(担当当番名)"
     if role == Roles_ID.TOSHO.value:
         dates_input = _fixture_dates_per_role(duty_type=Roles_Definition.TOSHO_COMMITEE, dates=dates)
@@ -638,14 +638,8 @@ def test_3(path_touban_master_sheet, sheet_name, output_path="/cws/src/130s/nton
 
 def test_4(path_touban_master_sheet,
            sheet_name,
-           roles,
-           output_path="/cws/src/130s/nton_matching"):
-    """
-    @todo Type hint of `roles` needs to be worked on.
-      One way to do it is as follows but this is hardcoding:
-
-        List[Literal[Roles_ID.TOSHO, Roles_ID.HOKEN, Roles_ID.ANZEN]],
-    """
+           roles: List[Roles_ID],
+           output_path="/cws/src/130s/nton_matching") -> None:
     touban_accessor = GTA()  # TODO What is this?
     dates = fixture_dates_202509()
 
