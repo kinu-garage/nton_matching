@@ -535,6 +535,7 @@ class GjToubanAccess:
         # 6. If yes, write the values to the cell. Do not erase the previously added assigned dates.
         #    e.g. If the value in the cell reads "5/27,6/4" 
         #         and the value in the person's object is equivalent to "2025/05/27, 2025/06/04, 2025/06/11",
+        #             where "2025/06/11" is the new value added since the spreadsheet file was reade,
         #         then the value to be written back to the cell should be "2025/05/27, 2025/06/04, 2025/06/11".
         # Write back the assigned dates to the cell in the given `column`.
         # Parse each row object, create 'PersonPlayer' object per each person.        

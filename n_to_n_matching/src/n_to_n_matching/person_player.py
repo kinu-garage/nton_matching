@@ -117,7 +117,7 @@ class PersonPlayer(Player):
         raise AttributeError(self._ERRMSG_SHOULD_NOT_OVERWRITE.format("email_addr_prv1"))
 
     @property
-    def assigned_dates(self):
+    def assigned_dates(self) -> List[AssignedDate]:
         return self._assigned_dates
     
     @assigned_dates.setter

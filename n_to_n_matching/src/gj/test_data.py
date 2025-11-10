@@ -20,7 +20,7 @@ import itertools
 import numpy as np
 import pytest
 
-from n_to_n_matching.gj_rsc_matching import GjVolunteerMatching
+from gj.gj_rsc_matching import GjVolunteerMatching
 from n_to_n_matching.match_game import GjVolunteerAllocationGame
 from n_to_n_matching.util import Util
 #from n_to_n_matching.test_main import fixture_dates_0, fixture_dates_1, fixture_persons_1

@@ -23,16 +23,17 @@ import pytest
 from gj.test_data import (
     fixture_dates_0, fixture_dates_1, fixture_persons_1, game_obj,
     input_dates_obj, input_dates_yaml, input_guardians_yaml, input_persons_obj,
-    max_allowed_days_per_person, path_touban_master_sheet
+    max_allowed_days_per_person
 )
+from gj.test_data import SampleToubanMaster202507
 from gj.gj_rsc_matching import GjVolunteerMatching
+from gj.responsibility import ResponsibilityLevel
 from gj.spreadsheet_access import GjToubanAccess2024
 from gj.util import GjUtil
 from n_to_n_matching.match_game import GjVolunteerAllocationGame
-from n_to_n_matching.person_player import ResponsibilityLevel
 from n_to_n_matching.util import Util
 #from n_to_n_matching.test_main import fixture_dates_0, fixture_dates_1, fixture_persons_1
-from n_to_n_matching.workdate_player import DateRequirement, WorkDate
+from n_to_n_matching.workdate_player import WorkDate
 
 
 def _assert_assignees(list_assignees):
@@ -83,6 +84,10 @@ def _verify_allowance(_game_obj, allowance_obj_per_responsibility, expected_max,
     assert allowance_obj_per_responsibility[_game_obj.ATTR_UNLUCKY_PERSON_NUMS] == expected_unluck
 
 @pytest.fixture
+def path_touban_master():
+    return SampleToubanMaster202507.SampleToubanMaster202507()
+
+@pytest.fixture
 def _expected_allowance():
     _EXPECTED_LEADER_MAX = 1
     _EXPECTED_LEADER_UNLUCKY = 1
@@ -100,15 +105,15 @@ def _test_max_allowed_days_per_person(game_obj, per_responsibility, _expected_al
     assert per_responsibility[game_obj.ATTR_MAX_STINT_OPPORTUNITIES] == _expected_allowance_set[0]
     assert per_responsibility[game_obj.ATTR_UNLUCKY_PERSON_NUMS] == _expected_allowance_set[1]
 
-def test_max_allowed_days_per_person_leader(game_obj, max_allowed_days_per_person, _expected_allowance):
+def test_max_allowed_days_per_person_leader(game_obj, max_allowed_days_per_person, _expected_allowance: list[list[int]]):
     per_responsibility = max_allowed_days_per_person[ResponsibilityLevel.LEADER]
     _test_max_allowed_days_per_person(game_obj, per_responsibility, _expected_allowance[0])
 
-def test_max_allowed_days_per_person_commitee(game_obj, max_allowed_days_per_person, _expected_allowance):
+def test_max_allowed_days_per_person_commitee(game_obj, max_allowed_days_per_person, _expected_allowance: list[list[int]]):
     per_responsibility = max_allowed_days_per_person[ResponsibilityLevel.COMMITTEE]
     _test_max_allowed_days_per_person(game_obj, per_responsibility, _expected_allowance[1])
 
-def test_max_allowed_days_per_person_noncommitee(game_obj, max_allowed_days_per_person, _expected_allowance):
+def test_max_allowed_days_per_person_noncommitee(game_obj, max_allowed_days_per_person, _expected_allowance: list[list[int]]):
     per_responsibility = max_allowed_days_per_person[ResponsibilityLevel.GENERAL]
     _test_max_allowed_days_per_person(game_obj, per_responsibility, _expected_allowance[2])
 
