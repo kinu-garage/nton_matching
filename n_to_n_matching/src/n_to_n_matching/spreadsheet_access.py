@@ -16,6 +16,7 @@
 
 from collections import OrderedDict
 from openpyxl.cell.cell import Cell as pyxl_Cell
+from typing import List
 
 from n_to_n_matching.util import Util
 
@@ -73,7 +74,6 @@ class Row:
     """
     def __init__(self, row_id=-1, logger_obj=None):
         """
-        @type cells: [Cell]
         @param row_id: If non -1 value is passed, this value will be added to all the cells:
            - that are newly generated in the object of this class.
            - that are passed to this class IF no row ID is set yet.
@@ -103,9 +103,11 @@ class Row:
             else:
                 self._cells_in_a_row[_col_id] = cell
 
-    def set_row_by_strs(self, title_strs):
+    def set_row_by_strs(self, title_strs: List[str]):
         """
-        @type title_strs: [str]
+        @description: Each string in the passed list will be set as the value of each cell in the row,
+          which is the object of this class.
+        @param title_strs: List of value in each cell.
         """
         for col_id, title in enumerate(title_strs):
             c = Cell()
@@ -115,7 +117,7 @@ class Row:
             self._cells_in_a_row[col_id] = c
         self._logger.debug(f"self._cells_in_a_row: {self._cells_in_a_row}")
 
-    def get_col_title(self, col_id):
+    def get_col_val(self, col_id):
         return self._cells_in_a_row[col_id].value
 
     def get_col_id(self, col_title):

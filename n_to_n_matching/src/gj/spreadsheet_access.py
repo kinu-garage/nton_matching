@@ -17,14 +17,16 @@
 from abc import ABC, abstractmethod
 import openpyxl as pyxl
 from openpyxl.cell.cell import Cell as pyxl_Cell
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
+from gj.assigned_date import AssignedDate
 from gj.grade_class import GjGrade, GradeUtil
 from gj.responsibility import Responsibility, ResponsibilityLevel
-from gj.role import Role, Roles_Definition
+from gj.role import Role, Roles_Definition, Roles_ID
 from gj.util import GjUtil
 from n_to_n_matching.person_player import PersonBank, PersonPlayer
 from n_to_n_matching.spreadsheet_access import SpreadsheetCell, SpreadsheetRow
+from n_to_n_matching.util import Util
 
 
 class GjRowEntity:
@@ -40,8 +42,11 @@ class GjRowEntity:
     COLTITLE_SIBLING_3_PERSONNAME = "sibling_3_personname"
     COLTITLE_SIBLING_4_CLASS = "sibling_4_class"
     COLTITLE_DATE_ASSIGNED_TOSHO = "date_assigned_tosho"
+    COLTITLE_ASSIGNED_TOSHO_SUPPL = "assigned_tosho_supplement"
     COLTITLE_DATE_ASSIGNED_HOKEN = "date_assigned_hoken"
+    COLTITLE_ASSIGNED_HOKEN_SUPPL = "assigned_hoken_supplement"
     COLTITLE_DATE_ASSIGNED_PATROL = "date_assigned_patrol"
+    COLTITLE_ASSIGNED_PATROL_SUPPL = "assigned_patrol_supplement"
     COLTITLE_COMMENT = "comment"
     COLTITLE_TRANSFERED_DATE = "transfered_on"
     COLTITLE_TERMINATE_DATE = "terminate_on"
@@ -49,6 +54,33 @@ class GjRowEntity:
     COLTITLE_SELECTED_AS = "selected_as"
     COLTITLE_PHONENUM_REGISTERED = "phone_registered"
     COLTITLE_EMAIL_REGISTERED = "email_registered"
+
+    COL_TITLE_IDS_20250825 = {
+        2: COLTITLE_ID_IN_SHEET,           # "No"
+        3: COLTITLE_GRADE_CLASS,           # "学年組"
+        4: COLTITLE_STUDENT_NAME,           # "氏名"
+        5: COLTITLE_GUARDIAN_NAME,   # "保護者名"
+        6: COLTITLE_PHONE_EMERGENCY,       # "当番用TEL"
+        7: COLTITLE_EMAIL_EMERGENCY,       # "当番用メール"
+        8: COLTITLE_SIBLING_2_CLASS,       # "兄姉２"
+        9: COLTITLE_SIBLING_2_PERSONNAME,  # "兄姉氏名"
+        10: COLTITLE_SIBLING_3_CLASS,       # "兄姉３"
+        11: COLTITLE_SIBLING_3_PERSONNAME,  # "兄姉氏名"
+        12: COLTITLE_SIBLING_4_CLASS,       # "兄姉４"
+        14: COLTITLE_DATE_ASSIGNED_TOSHO,   # "図書" NOTE: From  15 (図書) to 20 (退学) aren't verified yet as of 20240829.
+        15: COLTITLE_ASSIGNED_TOSHO_SUPPL,  # "図書"列の補足
+        16: COLTITLE_DATE_ASSIGNED_HOKEN,   # "保健"
+        17: COLTITLE_ASSIGNED_HOKEN_SUPPL,
+        18: COLTITLE_DATE_ASSIGNED_PATROL,  # "パトロール", col R
+        19: COLTITLE_ASSIGNED_PATROL_SUPPL,  # Col S
+        20: COLTITLE_COMMENT,               # "備考"
+        21: COLTITLE_TRANSFERED_DATE,         # "編入", col U
+        22: COLTITLE_TERMINATE_DATE,          # "退学", col V
+        23: COLTITLE_EXEMPTED_BY,           # "免除対象", col W
+        24: COLTITLE_PHONENUM_REGISTERED,      # "事務局登録TEL", col X
+        # Noe col 25 not yet registered in this class
+        26: COLTITLE_EMAIL_REGISTERED,      # "旧メール", col Z
+    }
 
     COL_TITLE_IDS_20250503 = {
         2: COLTITLE_ID_IN_SHEET,           # "No"
@@ -98,7 +130,7 @@ class GjRowEntity:
         27: COLTITLE_EMAIL_REGISTERED,      # "クラス登録メール"
     }
 
-    def __init__(self, row: SpreadsheetRow, row_spec=COL_TITLE_IDS_20250503, logger_obj=None):
+    def __init__(self, row: SpreadsheetRow, row_spec=COL_TITLE_IDS_20250825, logger_obj=None):
         if type(row) != SpreadsheetRow:
             raise ValueError(f"'row' object must be the type of SpreadsheetRow. Instead, {type(row)} was passed.")
         self._logger = GjUtil.get_logger(__name__, logger_obj)
@@ -112,7 +144,7 @@ class GjRowEntity:
         self._row_spec = row_spec
         self._gj_row = self.parse_xls_row(row, self._row_spec)
     
-    def parse_xls_row(self, row: SpreadsheetRow, col_title_definition=COL_TITLE_IDS_20250503) -> List[SpreadsheetCell]:
+    def parse_xls_row(self, row: SpreadsheetRow, col_title_definition=COL_TITLE_IDS_20250825) -> List[SpreadsheetCell]:
         """
         @description: Evaluate each cell from the row object, find a cell that matches the column ID, then sets the cell's value.
         @type row: SpreadsheetRow
@@ -126,7 +158,7 @@ class GjRowEntity:
                 #self._logger.debug(f"At {cell.row=}, Grade-Class is empty. Skipping this row.")
                 #return None
 
-            if (cell.row % 7 == 0) and (cell.row < 255) and (cell.value):  # This number is very adhoc
+            if (cell.row % 7 == 0) and (cell.row < 255) and (cell.value):  # TODO This number is very adhoc
                 self._logger.debug(f"{cell.row=}-{cell.column=}, {cell.value=}")
             cell_title = ""
             try:
@@ -188,6 +220,30 @@ class GjRowEntity:
         return self._get_value_from_gj_row(self.COLTITLE_ID_IN_SHEET)
 
     @property
+    def assign_history_tosho(self):
+        return self._get_value_from_gj_row(self.COLTITLE_DATE_ASSIGNED_TOSHO)
+
+    @property
+    def assign_history_tosho_suppl(self):
+        return self._get_value_from_gj_row(self.COLTITLE_ASSIGNED_TOSHO_SUPPL)
+
+    @property
+    def assign_history_hoken(self):
+        return self._get_value_from_gj_row(self.COLTITLE_DATE_ASSIGNED_HOKEN)
+
+    @property
+    def assign_history_hoken_suppl(self):
+        return self._get_value_from_gj_row(self.COLTITLE_ASSIGNED_HOKEN_SUPPL)
+
+    @property
+    def assign_history_patrol(self):
+        return self._get_value_from_gj_row(self.COLTITLE_DATE_ASSIGNED_PATROL)
+
+    @property
+    def assign_history_patrol_suppl(self):
+        return self._get_value_from_gj_row(self.COLTITLE_ASSIGNED_PATROL_SUPPL)
+
+    @property
     def person_name(self):
         name = self._get_value_from_gj_row(self.COLTITLE_STUDENT_NAME)
         if not name:
@@ -219,8 +275,65 @@ class GjToubanAccess:
         self._touban_master_sheet = None
 
     @staticmethod
-    def get_a_sheet_by_name(workbook, sheet_name):
+    def get_cs_values_from_cell(val_in_cell: str, delimitter: str=",") -> List[str]:
         """
+        @description: 'cs' reads 'comma separated'.
+        @param val_in_cell: E.g. `row.assign_history_tosho`
+        """
+        values = val_in_cell.split(delimitter)
+        return values
+
+    def get_previously_assigned_dates(
+            self,
+            row: GjRowEntity,
+            fiscal_year_beginning: int=2025) -> List[AssignedDate]:
+        """
+        @param row: `row` object here is expected to contain a cell conform to `GjRowEntity` class, also
+          contain a cell that has dates previously assigned to the person,
+          in an expected format: "mm/dd,mm/dd,,,". For a single digit month Jan throu Sep,
+          single digit is used, e.g. "1/15" for Jan 15th.
+        """
+        _assigned_dates: List[AssignedDate] = []
+        # TODO Type of role must be identifiable.
+        _roles_tbd = [[Roles_Definition.TOSHO_COMMITEE, row.assign_history_tosho, row.assign_history_tosho_suppl],
+                      [Roles_Definition.HOKEN_COMMITEE, row.assign_history_hoken, row.assign_history_hoken_suppl],
+                      [Roles_Definition.SAFETY_COMMITEE, row.assign_history_patrol, row.assign_history_patrol_suppl]]
+        for role in _roles_tbd:
+            dates = []
+            ranks = []
+            try:
+                dates = self.get_cs_values_from_cell(role[1])
+
+                # Unlike `row.assign_history_*`, it is possible for `row.assign_history_*_suppl` cells to be empty.
+                ranks = self.get_cs_values_from_cell(role[2])
+            except AttributeError as e:
+                self._logger.warning(f"Either Supplementary assignment history  \
+                                     not found. Continuing though. {str(e)}.    \
+                                     If there's no `days` found in the input row,  \
+                                     ranks must be empty as well. '{dates=}', '{ranks=}'")
+            if (not ranks and not dates):
+                continue
+            elif (len(ranks) == len(dates) or len(ranks) < len(dates)):
+                for date_str, rank in zip(dates, ranks):
+                    # Format of `date_str` here is unpredictable as its generation involves humans.
+                    # So some patterns are considered here.
+                    # 1) Most commonly it'll likely be in a format e.g. "5/27" (to represent "May 27th"),
+                    #   which is not compatible for `datetime.date`. 
+                    # 2) mm/dd/yyyy
+                    # 3) mm/dd/yy
+                    # 4) yyyymmdd (without slash)
+                    date_obj = Util.create_date_from_str(date_str, year=fiscal_year_beginning, logger_obj=self._logger)
+
+                    date = AssignedDate(date=date_obj, role=Role(id=role[0]), rank_in_role=rank)
+                    _assigned_dates.append(date)
+            elif (len(dates) < len(ranks)):
+                raise ValueError(f"More ranks found than days. {len(dates)=}, {len(ranks)=}, not an expected scenario.")
+        return _assigned_dates
+
+    @staticmethod
+    def get_a_sheet_by_name(workbook, sheet_name) -> pyxl.worksheet.worksheet.Worksheet:
+        """
+        @todo: Verify the return value's type is actually `Worksheet`.
         @type workbook: openpyxl.workbook.workbook.Workbook
         @param sheet_name: The full name of the sheet to obtain.
         @rtype: Worksheet
@@ -241,8 +354,9 @@ class GjToubanAccess:
         return sheet
 
     @staticmethod
-    def get_a_sheet(workbook, suffix_master_file):
+    def get_a_sheet(workbook, suffix_master_file) -> pyxl.worksheet.worksheet.Worksheet:
         """
+        @todo: Verify the return value's type is actually `Worksheet`.
         @deprecated: Picking up a sheet just by a suffix of the sheet name may not be robust.
         @type workbook: openpyxl.workbook.workbook.Workbook
         @rtype: Worksheet
@@ -268,14 +382,13 @@ class GjToubanAccess:
         sheet = self.get_a_spread_sheet(path_xls, sheet_name)
         return sheet
 
-    def get_candidates(self, sheet, key_target):
+    def get_candidates(self, sheet, key_target) -> Tuple[List[pyxl_Cell], List[int]]:
         """
+        @description: From the given sheet, find rows that have the given `key_target` in the column defined by `COL_ROW_EXEMPT`.
         @param key_target: E.g. NAME_TOSHOIIN
-        @rtype: 1) [[cell]], 2) [int]
         """
         if key_target not in self.LIST_AVAILABLE_TARGET:
-            raise ValueError("The passed key_target='{}' is not present in the available targets '{}'.".format(
-                key_target, self.LIST_AVAILABLE_TARGET))
+            raise ValueError(f"The passed '{key_target=}' is not present in the available targets '{self.LIST_AVAILABLE_TARGET}'.")
         
         rows_matched = []
         # ID of the rows that meet the search criteria
@@ -294,9 +407,15 @@ class GjToubanAccess:
         self._logger.debug(f"Rows matched: {rows_matched}")
         return rows_matched, row_ids
 
-    def gj_xls_to_personobj(self, path_to_xls: str, sheet_name: str, title_row=3, row_spec=GjRowEntity.COL_TITLE_IDS_20250503) -> PersonBank:
+    def gj_xls_to_personobj(
+            self,
+            path_to_xls: str,
+            sheet_name: str,
+            title_row=3,
+            row_spec=GjRowEntity.COL_TITLE_IDS_20250825,
+            fiscal_year_beginning: int=2025) -> PersonBank:
         """
-        @description Convert GJLS' .xls specific format to the format this package can handle.
+        @description Read GJLS' .xls and output a Python object that this package can handle.
 
             Assumption for the spreadsheet format:
             - Titles of cells are defined in a single row.
@@ -311,6 +430,10 @@ class GjToubanAccess:
         # Each row should obtain the ID number from a cell in each row in the spreadsheet,
         # but how reliably maintained the ID in the spreadsheet is unknown. So here
         # maintaining ID as well. This is just a backup.
+        #
+        # Update 20250825: My guess, after having attended a meeting with Touban group is that
+        # they do NOT make any effort to preserve the ID in the touban master file,
+        # so across mutiple master files, there's no consistensy for the IDs.
         _row_count = 0
         # Parse each row object, create 'PersonPlayer' object per each person.        
 
@@ -370,6 +493,11 @@ class GjToubanAccess:
                 children_ids = None,
                 responsibilities=[_responsibility],
             )
+
+            #TODO Scan the previously assigned dates from the row `(TBD)`, and set them to the person object.
+            _assigned_dates = self.get_previously_assigned_dates(row, fiscal_year_beginning)
+            
+
             self._logger.debug(f"person ID: {person.id}, name: {person.name}")
             persons.append(person)
         self._logger.debug(f"Persons: {persons}, size of persons: {len(persons)}")
@@ -383,6 +511,70 @@ class GjToubanAccess:
         @deprecated: Potentially this method may no longer needed, replaced by GjUtil.corresponding_responsibility().
         """
         raise NotImplementedError()
+
+    def gj_write_assigneddates_to_xls(
+            self,
+            path_to_xls: str,
+            sheet_name: str,
+            persons: PersonBank,
+            columns: List[int]) -> bool:
+        """
+        @description Assumes the spreadsheet/.xlsx file formatted in the same way as the one described in `gj_xls_to_personobj()`.
+          Writes back the given values and saves the file.
+        """
+        # Read .xls file into a Python objects
+        rows_xls_obj = self.get_touban_master_sheet(path_to_xls, sheet_name=sheet_name)
+
+        _row_count = 0
+        # Per person, 
+        # 1. See if there are any columns of assigned dates that are filled in .
+        # 2. If no, go to the next player. 
+        # 3. If yes there are, find the corresponding row in the spreadsheet.
+        # 4. See if the values in the filled cells are different from the values in the person's Python object.
+        # 5. If no, there's no difference, go to the next player.
+        # 6. If yes, write the values to the cell. Do not erase the previously added assigned dates.
+        #    e.g. If the value in the cell reads "5/27,6/4" 
+        #         and the value in the person's object is equivalent to "2025/05/27, 2025/06/04, 2025/06/11",
+        #             where "2025/06/11" is the new value added since the spreadsheet file was reade,
+        #         then the value to be written back to the cell should be "2025/05/27, 2025/06/04, 2025/06/11".
+        # Write back the assigned dates to the cell in the given `column`.
+        # Parse each row object, create 'PersonPlayer' object per each person.        
+
+        _max_row_id = self.first_empty_row(rows_xls_obj)
+        self._logger.info(f"{rows_xls_obj.max_row=}, {_max_row_id}")
+        for p in persons.persons:
+            # To expidite the search, 1) first find the n-th row where n is `GjRowEntity.COLTITLE_ID_IN_SHEET.`
+            row_num = -1
+            for row_pyxl in rows_xls_obj:
+                row_num += 1
+                if p.id == row_num:
+                    # This assumes `PersonPlayer.id`` is set to the same value as `GjRowEntity.COLTITLE_ID_IN_SHEET``
+                    self._logger.debug(f"Found the row for person {p.name}, {p.id=}, {row_num=}")
+                    # Found the row for the person.
+                    # Now check if there's any assigned date to be written back to the cell.
+                    for col in columns:
+                        # If email (i.e. ID for the person) matches, then write back the assigned dates.
+                        if p.email_addr_prv1 == row_pyxl[GjRowEntity.COLTITLE_EMAIL_EMERGENCY].value:
+                            self._logger.debug(f"Row#{row_num=}: Matched {p.email_addr_prv1=} == {row_pyxl[GjRowEntity.COLTITLE_EMAIL_EMERGENCY].value=}")
+                            # TODO See if the columns match (e.g. Tosho/Hoken/Patrol)
+                            # 20250915 I pause this method here for now, as this requires a work for https://github.com/kinu-garage/nton_matching/issues/40
+
+                            # See if there's any assigned date to be written back to the cell.
+                            _assigned_dates_str = ""
+                            for _p_assigned_date_obj in p.assigned_dates:
+                                # Construct a string that represents date(s).
+                                if _assigned_dates_str:
+                                   _assigned_dates_str += ", "
+                                _assigned_dates_str += _p_assigned_date_obj.date.strftime("%-yyyy/%-mm/%-dd")  # E.g. "2025/05/07"
+
+                            if _assigned_dates_str:
+                                self._logger.debug(f"Writing back assigned dates '{_assigned_dates_str}' to the cell at row {row_num}, column {col}.")
+                                row_pyxl[col].value = _assigned_dates_str
+                            else:
+                                self._logger.debug(f"No assigned dates found for person '{p.name}' (ID: {p.id}).")
+                        else:
+                            self._logger.debug(f"No-match: {p.email_addr_prv1=} in row#{row_num=}, value in cell: {row_pyxl[GjRowEntity.COLTITLE_EMAIL_EMERGENCY].valu=}")
+                            continue
 
 
 class GjToubanAccess2024(GjToubanAccess):

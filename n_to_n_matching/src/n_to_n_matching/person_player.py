@@ -105,7 +105,19 @@ class PersonPlayer(Player):
         raise AttributeError(self._ERRMSG_SHOULD_NOT_OVERWRITE.format("phone_num"))
 
     @property
-    def assigned_dates(self):
+    def email_addr_prv1(self) -> str:
+        """
+        @summary: Primary private email address. This is used as an ID for the person in this application,
+          and ONLY during the runtime of the application.
+        """
+        return self._email_addr
+    
+    @email_addr_prv1.setter
+    def email_addr_prv1(self, val):
+        raise AttributeError(self._ERRMSG_SHOULD_NOT_OVERWRITE.format("email_addr_prv1"))
+
+    @property
+    def assigned_dates(self) -> List[AssignedDate]:
         return self._assigned_dates
     
     @assigned_dates.setter
@@ -115,8 +127,16 @@ class PersonPlayer(Player):
         """
         self._assigned_dates = val
 
-    def assigned_date(self, val: AssignedDate):
-        self._assigned_dates.append(val)
+    def assigned_date(self, new_date: AssignedDate):
+        """
+        @summary: If the date in `val` is already in the existing list, raise ValueError.
+        """
+        for assigned_date in self._assigned_dates:
+            if (assigned_date.date == new_date.date):
+               if (assigned_date.responsibility == new_date.responsibility):
+                   raise ValueError(f"ID '{self.id}' already has '{new_date.date}' as an assigned date with responsibility '{new_date.responsibility}'.")
+               self._logger.warning(f"ID '{self.id}' already has '{new_date.date}' as an assigned date but with different responsibility '{assigned_date.responsibility}'.")
+        self._assigned_dates.append(new_date)
 
     @property
     def roles(self) -> List[Role]:

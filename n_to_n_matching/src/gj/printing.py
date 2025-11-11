@@ -28,9 +28,9 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, TableStyle
 
+from gj.gj_rsc_matching import GjVolunteerMatching
 from gj.requirements import DateRequirement
 from n_to_n_matching.workdate_player import WorkDate
-from n_to_n_matching.gj_rsc_matching import GjVolunteerMatching
 from n_to_n_matching.util import Util as NtonUtil
 from n_to_n_matching.person_player import PersonPlayer
 
